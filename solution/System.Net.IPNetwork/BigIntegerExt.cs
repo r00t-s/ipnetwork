@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace System.Net {
     using System;
-    using System.Numerics;
-    using System.Text;
+    using Numerics;
+    using Text;
 
     /// <summary>
     /// Extension methods to convert <see cref="System.Numerics.BigInteger"/>
@@ -84,7 +81,7 @@ namespace System.Net {
             }
 
             // Convert first chunk (24-bits) to integer value.
-            int int24 = 0;
+            var int24 = 0;
             for (; extra != 0; extra--) {
                 int24 <<= 8;
                 int24 += bytes[idx--];

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace System.Net.ConsoleApplication {
+﻿namespace System.Net.ConsoleApplication {
     public class ProgramContext {
 
         public bool IPNetwork;

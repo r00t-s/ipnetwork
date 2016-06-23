@@ -1,38 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net;
+﻿using System.Collections.Generic;
 using System.Collections;
 using System.Numerics;
 
 namespace System.Net {
     public class IPAddressCollection : IEnumerable<IPAddress>, IEnumerator<IPAddress> {
 
-        private IPNetwork _ipnetwork;
+        private readonly IPNetwork _ipnetwork;
         private BigInteger _enumerator;
 
         internal IPAddressCollection(IPNetwork ipnetwork) {
-            this._ipnetwork = ipnetwork;
-            this._enumerator = -1;
+            _ipnetwork = ipnetwork;
+            _enumerator = -1;
         }
 
 
         #region Count, Array, Enumerator
 
-        public BigInteger Count {
-            get {
-                return this._ipnetwork.Total;
-            }
-        }
+        public BigInteger Count => _ipnetwork.Total;
 
         public IPAddress this[BigInteger i] {
             get {
-                if (i >= this.Count) {
-                    throw new ArgumentOutOfRangeException("i");
+                if (i >= Count) {
+                    throw new ArgumentOutOfRangeException(nameof(i));
                 }
-                byte width = this._ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? (byte)32 : (byte)128;
-                IPNetworkCollection ipn = IPNetwork.Subnet(this._ipnetwork, width);
+                var width = _ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? (byte)32 : (byte)128;
+                var ipn = IPNetwork.Subnet(_ipnetwork, width);
                 return ipn[i].Network;
             }
         }
@@ -51,9 +43,7 @@ namespace System.Net {
 
         #region IEnumerator<IPNetwork> Members
 
-        public IPAddress Current {
-            get { return this[this._enumerator]; }
-        }
+        public IPAddress Current => this[_enumerator];
 
         #endregion
 
@@ -61,28 +51,21 @@ namespace System.Net {
 
         public void Dispose() {
             // nothing to dispose
-            return;
         }
 
         #endregion
 
         #region IEnumerator Members
 
-        object IEnumerator.Current {
-            get { return this.Current; }
-        }
+        object IEnumerator.Current => Current;
 
         public bool MoveNext() {
-            this._enumerator++;
-            if (this._enumerator >= this.Count) {
-                return false;
-            }
-            return true;
-
+            _enumerator++;
+            return _enumerator < Count;
         }
 
         public void Reset() {
-            this._enumerator = -1;
+            _enumerator = -1;
         }
 
         #endregion

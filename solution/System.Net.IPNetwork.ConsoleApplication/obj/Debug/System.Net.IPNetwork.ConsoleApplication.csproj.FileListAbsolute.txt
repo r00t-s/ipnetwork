@@ -1,0 +1,6 @@
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\binaries\Debug\ipnetwork.exe.config
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\binaries\Debug\ipnetwork.exe
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\binaries\Debug\ipnetwork.pdb
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\System.Net.IPNetwork.ConsoleApplication\obj\Debug\System.Net.IPNetwork.ConsoleApplication.csprojResolveAssemblyReference.cache
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\System.Net.IPNetwork.ConsoleApplication\obj\Debug\ipnetwork.exe
+C:\Users\TAnders9\Source\Repos\ipnetwork\solution\System.Net.IPNetwork.ConsoleApplication\obj\Debug\ipnetwork.pdb

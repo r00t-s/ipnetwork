@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Collections;
 using System.Numerics;
 
@@ -9,36 +6,31 @@ namespace System.Net {
     public class IPNetworkCollection : IEnumerable<IPNetwork>, IEnumerator<IPNetwork> {
 
         private BigInteger _enumerator;
-        private byte _cidrSubnet;
-        private IPNetwork _ipnetwork;
+        private readonly byte _cidrSubnet;
+        private readonly IPNetwork _ipnetwork;
 
-        private byte _cidr {
-            get { return this._ipnetwork.Cidr; }
-        }
-        private BigInteger _broadcast {
-            get { return IPNetwork.ToBigInteger(this._ipnetwork.Broadcast); }
-        }
-        private BigInteger _lastUsable {
-            get { return IPNetwork.ToBigInteger(this._ipnetwork.LastUsable); }
-        }
-        private BigInteger _network {
-            get { return IPNetwork.ToBigInteger(this._ipnetwork.Network); }
-        }
+        private byte _cidr => _ipnetwork.Cidr;
+
+        private BigInteger _broadcast => IPNetwork.ToBigInteger(_ipnetwork.Broadcast);
+
+        private BigInteger _lastUsable => IPNetwork.ToBigInteger(_ipnetwork.LastUsable);
+
+        private BigInteger _network => IPNetwork.ToBigInteger(_ipnetwork.Network);
 
         internal IPNetworkCollection(IPNetwork ipnetwork, byte cidrSubnet) {
 
-            int maxCidr = ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? 32 : 128;
+            var maxCidr = ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? 32 : 128;
             if (cidrSubnet > maxCidr) {
-                throw new ArgumentOutOfRangeException("cidrSubnet");
+                throw new ArgumentOutOfRangeException(nameof(cidrSubnet));
             }
 
             if (cidrSubnet < ipnetwork.Cidr) {
                 throw new ArgumentException("cidr");
             }
 
-            this._cidrSubnet = cidrSubnet;
-            this._ipnetwork = ipnetwork;
-            this._enumerator = -1;
+            _cidrSubnet = cidrSubnet;
+            _ipnetwork = ipnetwork;
+            _enumerator = -1;
         }
 
         #region Count, Array, Enumerator
@@ -47,7 +39,7 @@ namespace System.Net {
         {
             get
             {
-                BigInteger count = BigInteger.Pow(2, this._cidrSubnet - this._cidr);
+                var count = BigInteger.Pow(2, _cidrSubnet - _cidr);
                 return count; 
             }
         }
@@ -55,16 +47,16 @@ namespace System.Net {
         public IPNetwork this[BigInteger i] {
             get
             {
-                if (i >= this.Count)
+                if (i >= Count)
                 {
                     throw new ArgumentOutOfRangeException("i");
                 }
 
-                BigInteger last = this._ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetworkV6
-                    ? this._lastUsable : this._broadcast;
-                BigInteger increment = (last - this._network) / this.Count;
-                BigInteger uintNetwork = this._network + ((increment + 1) * i);
-                IPNetwork ipn = new IPNetwork(uintNetwork, this._ipnetwork.AddressFamily, this._cidrSubnet);
+                var last = _ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetworkV6
+                    ? _lastUsable : _broadcast;
+                var increment = (last - _network) / Count;
+                var uintNetwork = _network + ((increment + 1) * i);
+                var ipn = new IPNetwork(uintNetwork, _ipnetwork.AddressFamily, _cidrSubnet);
                 return ipn;
             }
         }
@@ -85,10 +77,7 @@ namespace System.Net {
 
         #region IEnumerator<IPNetwork> Members
 
-        public IPNetwork Current
-        {
-            get { return this[this._enumerator]; }
-        }
+        public IPNetwork Current => this[_enumerator];
 
         #endregion
 
@@ -97,32 +86,23 @@ namespace System.Net {
         public void Dispose()
         {
             // nothing to dispose
-            return;
         }
 
         #endregion
 
         #region IEnumerator Members
 
-        object IEnumerator.Current
-        {
-            get { return this.Current; }
-        }
+        object IEnumerator.Current => Current;
 
         public bool MoveNext()
         {
-            this._enumerator++;
-            if (this._enumerator >= this.Count)
-            {
-                return false;
-            }
-            return true;
-
+            _enumerator++;
+            return _enumerator < Count;
         }
 
         public void Reset()
         {
-            this._enumerator = -1;
+            _enumerator = -1;
         }
 
         #endregion
