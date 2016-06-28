@@ -1,4 +1,6 @@
-﻿using System.Net.Sockets;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Sockets;
 using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -7,20 +9,251 @@ namespace System.Net.TestProject
     [TestClass]
     public class IPNetworkV6UnitTest
     {
+        #region TryToCidr
+
+        [TestMethod]
+        public void TestTryToCidr128To0()
+        {
+            var mask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffc0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fe00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fc00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:f800",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:f000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:e000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:c000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fffe:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fffc:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fff8:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fff0:0",
+                "8000::",
+                "::"
+            };
+            var expectedcidr = new List<byte>
+            {
+                128,
+                127,
+                126,
+                125,
+                124,
+                123,
+                122,
+                121,
+                120,
+                119,
+                118,
+                117,
+                116,
+                115,
+                114,
+                113,
+                112,
+                111,
+                110,
+                109,
+                108,
+                1,
+                0
+            };
+
+            for (var i = 0; i < mask.Count; i++)
+            {
+                byte? result;
+                var parsed = IPNetwork.TryToCidr(IPAddress.Parse(mask[i]), out result);
+                Assert.AreEqual(true, parsed, "parsed");
+                Assert.AreEqual(expectedcidr[i], result, "cidr");
+            }
+        }
+
+        #endregion
+
+        #region ToBigInteger
+
+        [TestMethod]
+        public void TestToBigInteger10()
+        {
+            var mask = new List<string> {"::f", "::fff", "::ff", "::ff00:0", "::"};
+            var uintMask = new List<uint> {0xf, 0xfff, 0xff, 0xff000000, 0x00000000};
+            var index = 0;
+            foreach (var result in mask.Select(masktotest => IPNetwork.ToBigInteger(IPAddress.Parse(mask[index]))))
+            {
+                Assert.AreEqual(uintMask[index], result, "uint");
+                index++;
+            }
+        }
+
+        #endregion
+
+        #region TryToBigInteger
+
+        [TestMethod]
+        public void TestTryToBigInteger()
+        {
+            var mask = new List<string> {"::ffff:ffff", "::ffff:ff00", "::ffff:0", "::ff00:0", "::"};
+            var uintMask = new List<uint> {0xffffffff, 0xffffff00, 0xffff0000, 0xff000000, 0x00000000};
+
+            for (var i = 0; i < mask.Count; i++)
+            {
+                BigInteger? result;
+                var parsed = IPNetwork.TryToBigInteger(IPAddress.Parse(mask[i]), out result);
+                Assert.AreEqual(uintMask[i], result, "uint");
+                Assert.AreEqual(true, parsed, "parsed");
+            }
+        }
+
+        #endregion
+
+        #region ValidNetmask
+
+        [TestMethod]
+        public void TestValidNetmask()
+        {
+            var mask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:0000:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:0000:0001"
+            };
+            var expectedvalue = new List<bool> {true, true, true, false, false};
+            var index = 0;
+            foreach (var result in mask.Select(masktotest => IPNetwork.ValidNetmask(IPAddress.Parse(masktotest))))
+            {
+                Assert.AreEqual(expectedvalue[index], result, "ValidNetmask");
+                index++;
+            }
+        }
+
+        #endregion
+
+        #region BitsSet
+
+        [TestMethod]
+        public void TestBitsSet()
+        {
+            var ip = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000",
+                "f0f0:f0f0:f0f0:f0f0:f0f0:f0f0:f0f0:f0f0"
+            };
+            var bits = new List<uint> {128, 124, 112, 64};
+            var index = 0;
+            foreach (var result in ip.Select(iptotest => IPNetwork.BitsSet(IPAddress.Parse(iptotest))))
+            {
+                Assert.AreEqual(bits[index], result, "BitsSet");
+                index++;
+            }
+        }
+
+        #endregion
+
+        #region TryGuessCidr
+
+        [TestMethod]
+        public void TestTryGuessCidr()
+        {
+            var toparse = new List<string> {null, "::", "2001:0db8::"};
+            var diditparse = new List<bool> {false, true, true};
+            var expectedresult = new List<int> {0, 64, 64};
+            for (var i = 0; i < toparse.Count; i++)
+            {
+                byte cidr;
+                var parsed = IPNetwork.TryGuessCidr(toparse[i], out cidr);
+                Assert.AreEqual(diditparse[i], parsed, "parsed");
+                Assert.AreEqual(expectedresult[i], cidr, "cidr");
+            }
+        }
+
+        #endregion
+
+        #region Count
+
+        [TestMethod]
+        public void TestTotals()
+        {
+            var network = new List<string> {"::/128", "::/127", "::/126", "::/120", "::/112", "::/104", "::/0"};
+            var total = new List<BigInteger> {1, 2, 4, 256, 65536, 16777216, BigInteger.Pow(2, 128)};
+            var index = 0;
+            foreach (var testtotal in network.Select(IPNetwork.Parse))
+            {
+                Assert.AreEqual(total[index], testtotal.Total, "Total");
+                index++;
+            }
+        }
+
+        #endregion
+
+        #region Usable
+
+        [TestMethod]
+        public void TestUsable()
+        {
+            var network = new List<string> {"::/128", "::/127", "::/126", "::/120", "::/112", "::/104", "::/0"};
+            var usable = new List<BigInteger> {1, 2, 4, 256, 65536, 16777216, BigInteger.Pow(2, 128)};
+            for (var i = 0; i < network.Count; i++)
+            {
+                var networktotest = IPNetwork.Parse(network[i]);
+                Assert.AreEqual(usable[i], networktotest.Usable, "Usable");
+            }
+        }
+
+        #endregion
+
+        #region TryParseCidr
+
+        [TestMethod]
+        public void TryParseCidr()
+        {
+            var sidr = new List<string> {"0", "sadsd", "33", "128", "129"};
+            var result = new List<byte?> {0, null, 33, 128, null};
+
+            for (var i = 9; i < sidr.Count; i++)
+            {
+                byte? cidr;
+                var parsed = IPNetwork.TryParseCidr(sidr[i], AddressFamily.InterNetworkV6, out cidr);
+                Assert.AreEqual(result[i], cidr, "cidr");
+                switch (result[i])
+                {
+                    case null:
+                        Assert.AreEqual(false, parsed, "parsed");
+                        break;
+                    default:
+                        Assert.AreEqual(true, parsed, "parsed");
+                        break;
+                }
+            }
+        }
+
+        #endregion
+
         #region ParseIP
 
         [TestMethod]
         [ExpectedException(typeof (ArgumentException))]
         public void TestParseIPAddressNetmaskANE8()
         {
-            var ipnet = IPNetwork.Parse("xxxx::", "xxxx::");
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof (ArgumentException))]
-        public void TestParseIPAddressNetmaskANE9()
-        {
-            var ipnet = IPNetwork.Parse("::", "xxxx::");
+            var ipnetworkstotest = new List<string[]>
+            {
+                new[] {"xxxx::", "xxxx::"},
+                new[] {"::", "xxxx::"}
+            };
+            foreach (var ipnet in ipnetworkstotest.Select(t => IPNetwork.Parse(t[0], t[1])))
+            {
+            }
         }
 
         [TestMethod]
@@ -38,254 +271,138 @@ namespace System.Net.TestProject
         }
 
         [TestMethod]
-        public void TestParsev6_128()
+        public void TestParsev6_CIDR()
         {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            var ipaddress = new List<string>
+            {
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:0db8::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:1234:1234:1234:1234",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+            };
 
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var broadcast = "2001:db8::";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::";
-            byte cidr = 128;
-            BigInteger usable = 1;
+            var netmask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000",
+                "ffff:ffff:ffff:ffff:0000:0000:0000:0000",
+                "ffff:0000:0000:0000:0000:0000:0000:0000"
+            };
 
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
+            var network = new List<string>
+            {
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0",
+                "ffff:ffff:ffff:ffff::",
+                "ffff::"
+            };
+
+            var netmask2 = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0",
+                "ffff:ffff:ffff:ffff::",
+                "ffff::"
+            };
+
+            var firstUsable = new List<string>
+            {
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "2001:db8::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0",
+                "ffff:ffff:ffff:ffff::",
+                "ffff::"
+            };
+
+            var lastUsable = new List<string>
+            {
+                "2001:db8::",
+                "2001:db8::1",
+                "2001:db8::3",
+                "2001:db8::7",
+                "2001:db8::f",
+                "2001:db8::1f",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+            };
+
+            var cidr = new List<byte>
+            {
+                128,
+                127,
+                126,
+                125,
+                124,
+                123,
+                112,
+                64,
+                16
+            };
+
+            var usable = new List<BigInteger>
+            {
+                1,
+                2,
+                4,
+                8,
+                16,
+                32,
+                65536,
+                BigInteger.Pow(2, 128 - cidr[7]),
+                BigInteger.Pow(2, 128 - cidr[8])
+            };
+
+            for (var i = 0; i < ipaddress.Count; i++)
+            {
+                IPNetwork ipnetwork;
+                var parsed = IPNetwork.TryParse(ipaddress[i], netmask[i], out ipnetwork);
+                Assert.AreEqual(true, parsed, "parsed");
+                Assert.AreEqual(network[i], ipnetwork.Network.ToString(), "Network");
+                Assert.AreEqual(netmask2[i], ipnetwork.Netmask.ToString(), "Netmask");
+                Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
+                Assert.AreEqual(cidr[i], ipnetwork.Cidr, "Cidr");
+                Assert.AreEqual(usable[i], ipnetwork.Usable, "Usable");
+                Assert.AreEqual(firstUsable[i], ipnetwork.FirstUsable.ToString(), "FirstUsable");
+                Assert.AreEqual(lastUsable[i], ipnetwork.LastUsable.ToString(), "LastUsable");
+            }
         }
-
-        [TestMethod]
-        public void TestParsev6_127()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe";
-
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe";
-            var broadcast = "2001:db8::1";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::1";
-            byte cidr = 127;
-            BigInteger usable = 2;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParsev6_126()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc";
-
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc";
-            var broadcast = "2001:db8::3";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::3";
-            byte cidr = 126;
-            BigInteger usable = 4;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParsev6_125()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8";
-
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8";
-            var broadcast = "2001:db8::7";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::7";
-            byte cidr = 125;
-            BigInteger usable = 8;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParsev6_124()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
-
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
-            var broadcast = "2001:db8::f";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::f";
-            byte cidr = 124;
-            BigInteger usable = 16;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-
-        [TestMethod]
-        public void TestParsev6_123()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "2001:0db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0";
-
-            var network = "2001:db8::";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0";
-            var broadcast = "2001:db8::1f";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::1f";
-            byte cidr = 123;
-            BigInteger usable = 32;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-
-        [TestMethod]
-        public void TestParsev6_112()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000";
-
-            var network = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0";
-            var netmask2 = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0";
-            var broadcast = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var firstUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 112;
-            uint usable = 65536;
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParsev6_64()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "ffff:ffff:ffff:ffff:1234:1234:1234:1234";
-            var netmask = "ffff:ffff:ffff:ffff:0000:0000:0000:0000";
-
-            var network = "ffff:ffff:ffff:ffff::";
-            var netmask2 = "ffff:ffff:ffff:ffff::";
-            var broadcast = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var firstUsable = "ffff:ffff:ffff:ffff::";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 64;
-            var usable = BigInteger.Pow(2, 128 - cidr);
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParsev6_16()
-        {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var netmask = "ffff:0000:0000:0000:0000:0000:0000:0000";
-
-            var network = "ffff::";
-            var netmask2 = "ffff::";
-            var broadcast = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var firstUsable = "ffff::";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 16;
-            var usable = BigInteger.Pow(2, 128 - cidr);
-
-            var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask2, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
 
         [TestMethod]
         public void TestParsev6_EDGE()
         {
-            IPNetwork ipnetwork = null;
-            var ipaddress = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-
-            var network = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var firstUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 128;
-            uint usable = 1;
+            IPNetwork ipnetwork;
+            const string ipaddress = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            const string netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            const string network = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            const string firstUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            const string lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
+            const byte cidr = 128;
+            const uint usable = 1;
 
             var parsed = IPNetwork.TryParse(ipaddress, netmask, out ipnetwork);
 
@@ -304,186 +421,104 @@ namespace System.Net.TestProject
         #region ParseString
 
         [TestMethod]
-        public void TestParseString1()
+        public void TestParseString()
         {
-            var ipaddress = "2001:0db8:: ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
+            var ipaddress = new List<string>
+            {
+                "2001:0db8:: ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                ":: ::",
+                "::/0",
+                "::/32",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128",
+                "2001:0db8::",
+                "::",
+                "2001:0db8::1"
+            };
 
-            var network = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::f";
-            byte cidr = 124;
-            uint usable = 16;
+            var network = new List<string>
+            {
+                "2001:db8::",
+                "::",
+                "::",
+                "::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "2001:db8::",
+                "::",
+                "2001:db8::"
+            };
 
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
+            var netmask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "::",
+                "::",
+                "ffff:ffff::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff::",
+                "ffff:ffff:ffff:ffff::",
+                "ffff:ffff:ffff:ffff::"
+            };
+
+            var firstUsable = new List<string>
+            {
+                "2001:db8::",
+                "::",
+                "::",
+                "::",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "2001:db8::",
+                "::",
+                "2001:db8::"
+            };
+
+            var lastUsable = new List<string>
+            {
+                "2001:db8::f",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "::ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "2001:db8::ffff:ffff:ffff:ffff",
+                "::ffff:ffff:ffff:ffff",
+                "2001:db8::ffff:ffff:ffff:ffff"
+            };
+
+            var cidr = new List<byte>
+            {
+                124,
+                0,
+                0,
+                32,
+                128,
+                64,
+                64,
+                64
+            };
+
+            var usable = new List<BigInteger>
+            {
+                16,
+                BigInteger.Pow(2, 128 - cidr[1]),
+                BigInteger.Pow(2, 128 - cidr[2]),
+                BigInteger.Pow(2, 128 - cidr[3]),
+                1,
+                BigInteger.Pow(2, 64),
+                BigInteger.Pow(2, 64),
+                BigInteger.Pow(2, 64)
+            };
+
+            for (var i = 0; i < ipaddress.Count; i++)
+            {
+                var ipnetwork = IPNetwork.Parse(ipaddress[i]);
+                Assert.AreEqual(network[i], ipnetwork.Network.ToString(), "Network");
+                Assert.AreEqual(netmask[i], ipnetwork.Netmask.ToString(), "Netmask");
+                Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
+                Assert.AreEqual(cidr[i], ipnetwork.Cidr, "Cidr");
+                Assert.AreEqual(usable[i], ipnetwork.Usable, "Usable");
+                Assert.AreEqual(firstUsable[i], ipnetwork.FirstUsable.ToString(), "FirstUsable");
+                Assert.AreEqual(lastUsable[i], ipnetwork.LastUsable.ToString(), "LastUsable");
+            }
         }
-
-        [TestMethod]
-        public void TestParseString3()
-        {
-            var ipaddress = ":: ::";
-
-            var network = "::";
-            var netmask = "::";
-            var firstUsable = "::";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 0;
-            var usable = BigInteger.Pow(2, 128 - cidr);
-
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParseString4()
-        {
-            var ipaddress = "::/0";
-
-            var network = "::";
-            var netmask = "::";
-            var firstUsable = "::";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 0;
-            var usable = BigInteger.Pow(2, 128 - cidr);
-
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-
-        [TestMethod]
-        public void TestParseString5()
-        {
-            var ipaddress = "::/32";
-
-            var network = "::";
-            var netmask = "ffff:ffff::";
-            var firstUsable = "::";
-            var lastUsable = "::ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 32;
-            var usable = BigInteger.Pow(2, 128 - cidr);
-
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-
-        [TestMethod]
-        public void TestParseString6()
-        {
-            var ipaddress = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
-
-            var network = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var firstUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var lastUsable = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            byte cidr = 128;
-            uint usable = 1;
-
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-
-        [TestMethod]
-        public void TestParseIPAddressNoNetmask1()
-        {
-            var ipaddress = "2001:0db8::";
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-
-
-            var network = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff::";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::ffff:ffff:ffff:ffff";
-            byte cidr = 64;
-            var usable = BigInteger.Pow(2, 64);
-
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParseIPAddressNoNetmask4()
-        {
-            var ipaddress = "::";
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-
-
-            var network = "::";
-            var netmask = "ffff:ffff:ffff:ffff::";
-            var firstUsable = "::";
-            var lastUsable = "::ffff:ffff:ffff:ffff";
-            byte cidr = 64;
-            var usable = BigInteger.Pow(2, 64);
-
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
-        [TestMethod]
-        public void TestParseIPAddressNoNetmask5()
-        {
-            var ipaddress = "2001:0db8::1";
-            var ipnetwork = IPNetwork.Parse(ipaddress);
-
-            var network = "2001:db8::";
-            var netmask = "ffff:ffff:ffff:ffff::";
-            var firstUsable = "2001:db8::";
-            var lastUsable = "2001:db8::ffff:ffff:ffff:ffff";
-            byte cidr = 64;
-            var usable = BigInteger.Pow(2, 64);
-
-            Assert.AreEqual(network, ipnetwork.Network.ToString(), "Network");
-            Assert.AreEqual(netmask, ipnetwork.Netmask.ToString(), "Netmask");
-            Assert.AreEqual(null, ipnetwork.Broadcast, "Broadcast");
-            Assert.AreEqual(cidr, ipnetwork.Cidr, "Cidr");
-            Assert.AreEqual(usable, ipnetwork.Usable, "Usable");
-            Assert.AreEqual(firstUsable, ipnetwork.FirstUsable.ToString(), "FirstUsable");
-            Assert.AreEqual(lastUsable, ipnetwork.LastUsable.ToString(), "LastUsable");
-        }
-
 
         [TestMethod]
         [ExpectedException(typeof (ArgumentException))]
@@ -516,8 +551,8 @@ namespace System.Net.TestProject
         [TestMethod]
         public void TestParseStringString1()
         {
-            var ipaddress = "2001:0db8::";
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
+            const string ipaddress = "2001:0db8::";
+            const string netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0";
 
             var ipnetwork = IPNetwork.Parse(ipaddress, netmask);
             Assert.AreEqual("2001:db8::/124", ipnetwork.ToString(), "network");
@@ -527,21 +562,12 @@ namespace System.Net.TestProject
         [ExpectedException(typeof (ArgumentNullException))]
         public void TestParseStringString3()
         {
-            var ipaddress = "2001:0db8::";
-            string netmask = null;
+            const string ipaddress = "2001:0db8::";
+            var netmask = new List<string> {null, ""};
 
-            var ipnetwork = IPNetwork.Parse(ipaddress, netmask);
-        }
-
-
-        [TestMethod]
-        [ExpectedException(typeof (ArgumentNullException))]
-        public void TestParseStringString5()
-        {
-            var ipaddress = "2001:0db8::";
-            var netmask = "";
-
-            var ipnetwork = IPNetwork.Parse(ipaddress, netmask);
+            foreach (var ipnetwork in netmask.Select(parsenetmask => IPNetwork.Parse(ipaddress, parsenetmask)))
+            {
+            }
         }
 
         #endregion
@@ -563,7 +589,7 @@ namespace System.Net.TestProject
         [ExpectedException(typeof (ArgumentNullException))]
         public void ParseIpIp3()
         {
-            var ipaddress = "2001:0db8::";
+            const string ipaddress = "2001:0db8::";
             var ip = IPAddress.Parse(ipaddress);
             IPAddress netm = null;
             var ipnetwork = IPNetwork.Parse(ip, netm);
@@ -590,632 +616,66 @@ namespace System.Net.TestProject
 
 
         [TestMethod]
-        public void TestToCidr128()
+        public void TestToCidr128To0()
         {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-            byte cidr = 128;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr127()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe");
-            byte cidr = 127;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr126()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc");
-            byte cidr = 126;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr125()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8");
-            byte cidr = 125;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr124()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0");
-            byte cidr = 124;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr123()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0");
-            byte cidr = 123;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr122()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffc0");
-            byte cidr = 122;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr121()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80");
-            byte cidr = 121;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr120()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00");
-            byte cidr = 120;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr119()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fe00");
-            byte cidr = 119;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr118()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fc00");
-            byte cidr = 118;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr117()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:f800");
-            byte cidr = 117;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr116()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:f000");
-            byte cidr = 116;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr115()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:e000");
-            byte cidr = 115;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr114()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:c000");
-            byte cidr = 114;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr113()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000");
-            byte cidr = 113;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr112()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000");
-            byte cidr = 112;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr111()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fffe:0");
-            byte cidr = 111;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr110()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fffc:0");
-            byte cidr = 110;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr109()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fff8:0");
-            byte cidr = 109;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr108()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fff0:0");
-            byte cidr = 108;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr001()
-        {
-            var mask = IPAddress.Parse("8000::");
-            byte cidr = 1;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestToCidr000()
-        {
-            var mask = IPAddress.Parse("::");
-            byte cidr = 0;
-            int result = IPNetwork.ToCidr(mask);
-
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        #endregion
-
-        #region TryToCidr
-
-        [TestMethod]
-        public void TestTryToCidr128()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-            byte cidr = 128;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr127()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe");
-            byte cidr = 127;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr126()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc");
-            byte cidr = 126;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr125()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8");
-            byte cidr = 125;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr124()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0");
-            byte cidr = 124;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr123()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0");
-            byte cidr = 123;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr122()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffc0");
-            byte cidr = 122;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr121()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80");
-            byte cidr = 121;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr120()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00");
-            byte cidr = 120;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr119()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fe00");
-            byte cidr = 119;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr118()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fc00");
-            byte cidr = 118;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr117()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:f800");
-            byte cidr = 117;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr116()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:f000");
-            byte cidr = 116;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr115()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:e000");
-            byte cidr = 115;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr114()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:c000");
-            byte cidr = 114;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr113()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000");
-            byte cidr = 113;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr112()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000");
-            byte cidr = 112;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr111()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fffe:0");
-            byte cidr = 111;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr110()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fffc:0");
-            byte cidr = 110;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr109()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fff8:0");
-            byte cidr = 109;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr108()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:fff0:0");
-            byte cidr = 108;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr001()
-        {
-            var mask = IPAddress.Parse("8000::");
-            byte cidr = 1;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryToCidr000()
-        {
-            var mask = IPAddress.Parse("::");
-            byte cidr = 0;
-            byte? result = 0;
-            var parsed = IPNetwork.TryToCidr(mask, out result);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(cidr, result, "cidr");
-        }
-
-        #endregion
-
-        #region ToBigInteger
-
-        [TestMethod]
-        public void TestToBigInteger32()
-        {
-            var mask = IPAddress.Parse("::f");
-            uint uintMask = 0xf;
-            var result = IPNetwork.ToBigInteger(mask);
-
-            Assert.AreEqual(uintMask, result, "uint");
-        }
-
-        [TestMethod]
-        public void TestToBigInteger24()
-        {
-            var mask = IPAddress.Parse("::fff");
-            uint uintMask = 0xfff;
-            BigInteger? result = IPNetwork.ToBigInteger(mask);
-
-            Assert.AreEqual(uintMask, result, "uint");
-        }
-
-        [TestMethod]
-        public void TestToBigInteger16()
-        {
-            var mask = IPAddress.Parse("::ff");
-            uint uintMask = 0xff;
-            BigInteger? result = IPNetwork.ToBigInteger(mask);
-
-            Assert.AreEqual(uintMask, result, "uint");
-        }
-
-        [TestMethod]
-        public void TestToBigInteger8()
-        {
-            var mask = IPAddress.Parse("::ff00:0");
-            var uintMask = 0xff000000;
-            BigInteger? result = IPNetwork.ToBigInteger(mask);
-
-            Assert.AreEqual(uintMask, result, "uint");
-        }
-
-        [TestMethod]
-        public void TestToBigInteger0()
-        {
-            var mask = IPAddress.Parse("::");
-            uint uintMask = 0x00000000;
-            BigInteger? result = IPNetwork.ToBigInteger(mask);
-
-            Assert.AreEqual(uintMask, result, "uint");
-        }
-
-        #endregion
-
-        #region TryToBigInteger
-
-        [TestMethod]
-        public void TestTryToBigInteger32()
-        {
-            var mask = IPAddress.Parse("::ffff:ffff");
-            var uintMask = 0xffffffff;
-            BigInteger? result = null;
-            var parsed = IPNetwork.TryToBigInteger(mask, out result);
-
-            Assert.AreEqual(uintMask, result, "uint");
-            Assert.AreEqual(true, parsed, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTryToBigInteger24()
-        {
-            var mask = IPAddress.Parse("::ffff:ff00");
-            var uintMask = 0xffffff00;
-            BigInteger? result = null;
-            var parsed = IPNetwork.TryToBigInteger(mask, out result);
-
-            Assert.AreEqual(uintMask, result, "uint");
-            Assert.AreEqual(true, parsed, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTryToBigInteger16()
-        {
-            var mask = IPAddress.Parse("::ffff:0");
-            var uintMask = 0xffff0000;
-            BigInteger? result = null;
-            var parsed = IPNetwork.TryToBigInteger(mask, out result);
-
-            Assert.AreEqual(uintMask, result, "uint");
-            Assert.AreEqual(true, parsed, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTryToBigInteger8()
-        {
-            var mask = IPAddress.Parse("::ff00:0");
-            var uintMask = 0xff000000;
-
-            BigInteger? result = null;
-            var parsed = IPNetwork.TryToBigInteger(mask, out result);
-
-            Assert.AreEqual(uintMask, result, "uint");
-            Assert.AreEqual(true, parsed, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTryToBigInteger0()
-        {
-            var mask = IPAddress.Parse("::");
-            uint uintMask = 0x00000000;
-            BigInteger? result = null;
-            var parsed = IPNetwork.TryToBigInteger(mask, out result);
-
-            Assert.AreEqual(uintMask, result, "uint");
-            Assert.AreEqual(true, parsed, "parsed");
+            var mask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff8",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffe0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffc0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff80",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fe00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fc00",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:f800",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:f000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:e000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:c000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:8000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fffe:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fffc:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fff8:0",
+                "ffff:ffff:ffff:ffff:ffff:ffff:fff0:0",
+                "8000::",
+                "::"
+            };
+            var expectedcidr = new List<byte>
+            {
+                128,
+                127,
+                126,
+                125,
+                124,
+                123,
+                122,
+                121,
+                120,
+                119,
+                118,
+                117,
+                116,
+                115,
+                114,
+                113,
+                112,
+                111,
+                110,
+                109,
+                108,
+                1,
+                0
+            };
+
+            for (var i = 0; i < mask.Count; i++)
+            {
+                int result = IPNetwork.ToCidr(IPAddress.Parse(mask[i]));
+                Assert.AreEqual(expectedcidr[i], result, "cidr");
+            }
         }
 
         #endregion
@@ -1249,54 +709,22 @@ namespace System.Net.TestProject
         #region ToNetmask
 
         [TestMethod]
-        public void ToNetmask128()
+        public void ToNetmask()
         {
-            byte cidr = 128;
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff";
-            var result = IPNetwork.ToNetmask(cidr, AddressFamily.InterNetworkV6).ToString();
-
-            Assert.AreEqual(netmask, result, "netmask");
-        }
-
-        [TestMethod]
-        public void ToNetmask31()
-        {
-            byte cidr = 127;
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe";
-            var result = IPNetwork.ToNetmask(cidr, AddressFamily.InterNetworkV6).ToString();
-
-            Assert.AreEqual(netmask, result, "netmask");
-        }
-
-        [TestMethod]
-        public void ToNetmask30()
-        {
-            byte cidr = 126;
-            var netmask = "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc";
-            var result = IPNetwork.ToNetmask(cidr, AddressFamily.InterNetworkV6).ToString();
-
-            Assert.AreEqual(netmask, result, "netmask");
-        }
-
-        [TestMethod]
-        public void ToNetmask1()
-        {
-            byte cidr = 1;
-            var netmask = "8000::";
-            var result = IPNetwork.ToNetmask(cidr, AddressFamily.InterNetworkV6).ToString();
-
-            Assert.AreEqual(netmask, result, "netmask");
-        }
-
-
-        [TestMethod]
-        public void ToNetmask0()
-        {
-            byte cidr = 0;
-            var netmask = "::";
-            var result = IPNetwork.ToNetmask(cidr, AddressFamily.InterNetworkV6).ToString();
-
-            Assert.AreEqual(netmask, result, "netmask");
+            var cidr = new List<byte> {128, 127, 126, 1, 0};
+            var netmask = new List<string>
+            {
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe",
+                "ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc",
+                "8000::",
+                "::"
+            };
+            for (var i = 0; i < netmask.Count; i++)
+            {
+                var result = IPNetwork.ToNetmask(cidr[i], AddressFamily.InterNetworkV6).ToString();
+                Assert.AreEqual(netmask[i], result, "netmask");
+            }
         }
 
         [TestMethod]
@@ -1309,183 +737,40 @@ namespace System.Net.TestProject
 
         #endregion
 
-        #region ValidNetmask
-
-        [TestMethod]
-        public void TestValidNetmask0()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-            var expected = true;
-            var result = IPNetwork.ValidNetmask(mask);
-
-            Assert.AreEqual(expected, result, "ValidNetmask");
-        }
-
-        [TestMethod]
-        public void TestValidNetmask1()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0");
-            var expected = true;
-            var result = IPNetwork.ValidNetmask(mask);
-
-            Assert.AreEqual(expected, result, "ValidNetmask");
-        }
-
-        [TestMethod]
-        public void TestValidNetmask2()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000");
-            var expected = true;
-            var result = IPNetwork.ValidNetmask(mask);
-
-            Assert.AreEqual(expected, result, "ValidNetmask");
-        }
-
-
-        [TestMethod]
-        public void TestValidNetmaskEAE1()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:0000:ffff");
-            var expected = false;
-            var result = IPNetwork.ValidNetmask(mask);
-
-            Assert.AreEqual(expected, result, "ValidNetmask");
-        }
-
-        [TestMethod]
-        public void TestValidNetmaskEAE3()
-        {
-            var mask = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:0000:0001");
-            var expected = false;
-            var result = IPNetwork.ValidNetmask(mask);
-
-            Assert.AreEqual(expected, result, "ValidNetmask");
-        }
-
-        #endregion
-
-        #region BitsSet
-
-        [TestMethod]
-        public void TestBitsSet128()
-        {
-            var ip = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
-            uint bits = 128;
-            var result = IPNetwork.BitsSet(ip);
-
-            Assert.AreEqual(bits, result, "BitsSet");
-        }
-
-        [TestMethod]
-        public void TestBitsSet120()
-        {
-            var ip = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fff0");
-            uint bits = 124;
-            var result = IPNetwork.BitsSet(ip);
-
-            Assert.AreEqual(bits, result, "BitsSet");
-        }
-
-        [TestMethod]
-        public void TestBitsSet16()
-        {
-            var ip = IPAddress.Parse("ffff:ffff:ffff:ffff:ffff:ffff:ffff:0000");
-            uint bits = 112;
-            var result = IPNetwork.BitsSet(ip);
-
-            Assert.AreEqual(bits, result, "BitsSet");
-        }
-
-        [TestMethod]
-        public void TestBitsSet4()
-        {
-            var ip = IPAddress.Parse("f0f0:f0f0:f0f0:f0f0:f0f0:f0f0:f0f0:f0f0");
-            uint bits = 64;
-            var result = IPNetwork.BitsSet(ip);
-
-            Assert.AreEqual(bits, result, "BitsSet");
-        }
-
-        #endregion
-
         #region Contains
 
         [TestMethod]
-        public void TestContains1()
+        public void TestContains()
         {
             var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipaddress = IPAddress.Parse("2001:0db8::1");
-
-            var result = IPNetwork.Contains(ipnetwork, ipaddress);
-            var expected = true;
-
-            Assert.AreEqual(expected, result, "contains");
-        }
-
-        [TestMethod]
-        public void TestContains2()
-        {
-            var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipaddress = IPAddress.Parse("2001:0db8:0:1::");
-
-            var result = IPNetwork.Contains(ipnetwork, ipaddress);
-            var expected = false;
-
-            Assert.AreEqual(expected, result, "contains");
-        }
-
-        [TestMethod]
-        public void TestContains3()
-        {
-            var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipnetwork2 = IPNetwork.Parse("2001:0db8::/64");
-
-            var result = IPNetwork.Contains(ipnetwork, ipnetwork2);
-            var expected = true;
-
-            Assert.AreEqual(expected, result, "contains");
-        }
-
-        [TestMethod]
-        public void TestContains4()
-        {
-            var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipnetwork2 = IPNetwork.Parse("2001:0db8::/65");
-
-            var result = IPNetwork.Contains(ipnetwork, ipnetwork2);
-            var expected = true;
-
-            Assert.AreEqual(expected, result, "contains");
-        }
-
-        [TestMethod]
-        public void TestContains5()
-        {
-            var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipnetwork2 = IPNetwork.Parse("2001:0db8:1::/65");
-
-            var result = IPNetwork.Contains(ipnetwork, ipnetwork2);
-            var expected = false;
-
-            Assert.AreEqual(expected, result, "contains");
-        }
-
-
-        [TestMethod]
-        public void TestContains6()
-        {
-            var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
-            var ipnetwork2 = IPNetwork.Parse("2001:0db8::/63");
-
-            var result = IPNetwork.Contains(ipnetwork, ipnetwork2);
-            var expected = false;
-
-            Assert.AreEqual(expected, result, "contains");
+            var ipaddress = new List<string>
+            {
+                "2001:0db8::1",
+                "2001:0db8:0:1::",
+                "2001:0db8::/64",
+                "2001:0db8::/65",
+                "2001:0db8:1::/65",
+                "2001:0db8::/63"
+            };
+            var expectedvalue = new List<bool> {true, false, true, true, false, false};
+            for (var i = 0; i < ipaddress.Count; i++)
+            {
+                bool result;
+                if (i < 2)
+                {
+                    result = IPNetwork.Contains(ipnetwork, IPAddress.Parse(ipaddress[i]));
+                }
+                else
+                {
+                    result = IPNetwork.Contains(ipnetwork, IPNetwork.Parse(ipaddress[i]));
+                }
+                Assert.AreEqual(expectedvalue[i], result, "contains");
+            }
         }
 
         [TestMethod]
         [ExpectedException(typeof (ArgumentNullException))]
-        public void TestContains10()
+        public void TestContainsError()
         {
             var ipnetwork = IPNetwork.Parse("::/0");
             IPAddress ipaddress = null;
@@ -1499,7 +784,7 @@ namespace System.Net.TestProject
 
         [TestMethod]
         [ExpectedException(typeof (ArgumentNullException))]
-        public void TestOverlap2()
+        public void TestOverlap1()
         {
             var network1 = IPNetwork.Parse("2001:0db8::/0");
             IPNetwork network2 = null;
@@ -1507,47 +792,29 @@ namespace System.Net.TestProject
         }
 
         [TestMethod]
-        public void TestOverlap3()
+        public void TestOverlap2()
         {
-            var network1 = IPNetwork.Parse("2001:0db8::/64");
-            var network2 = IPNetwork.Parse("2001:0db8::/64");
-            var result = IPNetwork.Overlap(network1, network2);
-            var expected = true;
+            var network1 = new List<string>
+            {
+                "2001:0db8::/64",
+                "2001:0db8::/64",
+                "2001:0db8:0:1::/68",
+                "2001:0db8:0:1::/68"
+            };
+            var network2 = new List<string>
+            {
+                "2001:0db8::/64",
+                "2001:0db8:0:0:1::/65",
+                "2001:0db8:0:2::/68",
+                "2001:0db8:0:2::/62"
+            };
+            var valueexpected = new List<bool> {true, true, false, true};
 
-            Assert.AreEqual(expected, result, "overlap");
-        }
-
-        [TestMethod]
-        public void TestOverlap4()
-        {
-            var network1 = IPNetwork.Parse("2001:0db8::/64");
-            var network2 = IPNetwork.Parse("2001:0db8:0:0:1::/65");
-            var result = IPNetwork.Overlap(network1, network2);
-            var expected = true;
-
-            Assert.AreEqual(expected, result, "overlap");
-        }
-
-        [TestMethod]
-        public void TestOverlap5()
-        {
-            var network1 = IPNetwork.Parse("2001:0db8:0:1::/68");
-            var network2 = IPNetwork.Parse("2001:0db8:0:2::/68");
-            var result = IPNetwork.Overlap(network1, network2);
-            var expected = false;
-
-            Assert.AreEqual(expected, result, "overlap");
-        }
-
-        [TestMethod]
-        public void TestOverlap6()
-        {
-            var network1 = IPNetwork.Parse("2001:0db8:0:1::/68");
-            var network2 = IPNetwork.Parse("2001:0db8:0:2::/62");
-            var result = IPNetwork.Overlap(network1, network2);
-            var expected = true;
-
-            Assert.AreEqual(expected, result, "overlap");
+            for (var i = 0; i < network1.Count; i++)
+            {
+                var result = IPNetwork.Overlap(IPNetwork.Parse(network1[i]), IPNetwork.Parse(network2[i]));
+                Assert.AreEqual(valueexpected[i], result, "overlap");
+            }
         }
 
         #endregion
@@ -1558,13 +825,13 @@ namespace System.Net.TestProject
         {
             var ipnetwork = IPNetwork.Parse("2001:0db8::/64");
 
-            Console.WriteLine("Network : {0}", ipnetwork.Network);
-            Console.WriteLine("Netmask : {0}", ipnetwork.Netmask);
-            Console.WriteLine("Broadcast : {0}", ipnetwork.Broadcast);
-            Console.WriteLine("FirstUsable : {0}", ipnetwork.FirstUsable);
-            Console.WriteLine("LastUsable : {0}", ipnetwork.LastUsable);
-            Console.WriteLine("Usable : {0}", ipnetwork.Usable);
-            Console.WriteLine("Cidr : {0}", ipnetwork.Cidr);
+            Console.WriteLine($"Network : {ipnetwork.Network}");
+            Console.WriteLine($"Netmask : {ipnetwork.Netmask}");
+            Console.WriteLine($"Broadcast : {ipnetwork.Broadcast}");
+            Console.WriteLine($"FirstUsable : {ipnetwork.FirstUsable}");
+            Console.WriteLine($"LastUsable : {ipnetwork.LastUsable}");
+            Console.WriteLine($"Usable : {ipnetwork.Usable}");
+            Console.WriteLine($"Cidr : {ipnetwork.Cidr}");
         }
 
         public void Example2()
@@ -1585,10 +852,10 @@ namespace System.Net.TestProject
             var overlap1 = IPNetwork.Overlap(ipnetwork, ipnetwork2);
             var overlap2 = IPNetwork.Overlap(ipnetwork, ipnetwork3);
 
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipaddress, contains1);
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipaddress2, contains2);
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipnetwork2, contains3);
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipnetwork3, contains4);
+            Console.WriteLine($"{ipnetwork} contains {ipaddress} : {contains1}");
+            Console.WriteLine($"{ipnetwork} contains {ipaddress2} : {contains2}");
+            Console.WriteLine($"{ipnetwork} contains {ipnetwork2} : {contains3}");
+            Console.WriteLine($"{ipnetwork} contains {ipnetwork3} : {contains4}");
 
 
             Console.WriteLine("{0} overlap {1} : {2}", ipnetwork, ipnetwork2, overlap1);
@@ -1601,14 +868,14 @@ namespace System.Net.TestProject
             byte newCidr = 2;
             var subneted = IPNetwork.Subnet(wholeInternet, newCidr);
 
-            Console.WriteLine("{0} was subnetted into {1} subnets", wholeInternet, subneted.Count);
-            Console.WriteLine("First: {0}", subneted[0]);
-            Console.WriteLine("Last : {0}", subneted[subneted.Count - 1]);
+            Console.WriteLine($"{wholeInternet} was subnetted into {subneted.Count} subnets");
+            Console.WriteLine($"First: {subneted[0]}");
+            Console.WriteLine($"Last : {subneted[subneted.Count - 1]}");
             Console.WriteLine("All  :");
 
             foreach (var ipnetwork in subneted)
             {
-                Console.WriteLine("{0}", ipnetwork);
+                Console.WriteLine(ipnetwork);
             }
         }
 
@@ -1618,7 +885,7 @@ namespace System.Net.TestProject
             var ipnetwork2 = IPNetwork.Parse("2001:0db9::/64");
             var ipnetwork3 = IPNetwork.Supernet(new[] {ipnetwork1, ipnetwork2});
 
-            Console.WriteLine("{0} + {1} = {2}", ipnetwork1, ipnetwork2, ipnetwork3[0]);
+            Console.WriteLine($"{ipnetwork1} + {ipnetwork2} = {ipnetwork3[0]}");
         }
 
         public void Example6()
@@ -1631,8 +898,8 @@ namespace System.Net.TestProject
             var contains1 = IPNetwork.Contains(ipnetwork, ipaddress);
             var contains2 = IPNetwork.Contains(ipnetwork, ipaddress2);
 
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipaddress, contains1);
-            Console.WriteLine("{0} contains {1} : {2}", ipnetwork, ipaddress2, contains2);
+            Console.WriteLine($"{ipnetwork} contains {ipaddress} : {contains1}");
+            Console.WriteLine($"{ipnetwork} contains {ipaddress2} : {contains2}");
         }
 
 
@@ -1643,7 +910,7 @@ namespace System.Net.TestProject
 
             foreach (var ip in ips)
             {
-                Console.WriteLine("{0}", ip);
+                Console.WriteLine(ip);
             }
         }
 
@@ -1654,11 +921,26 @@ namespace System.Net.TestProject
         [TestMethod]
         public void TestToString()
         {
-            var ipnetwork = IPNetwork.Parse("2001:0db8:0000:0000:0000:0000:0000:0000/32");
-            var expected = "2001:db8::/32";
-            var result = ipnetwork.ToString();
-
-            Assert.AreEqual(expected, result, "ToString");
+            var ipnetwork = new List<string>
+            {
+                "2001:0db8:0000:0000:0000:0000:0000:0000/32",
+                "2001:0db8:1:2:3:4:5:6/32",
+                "2001:0db8:1:2:3:4:5:6/64",
+                "2001:0db8:1:2:3:4:5:6/100"
+            };
+            var expected = new List<string>
+            {
+                "2001:db8::/32",
+                "2001:db8::/32",
+                "2001:db8:1:2::/64",
+                "2001:db8:1:2:3:4::/100"
+            };
+            var index = 0;
+            foreach (var result in ipnetwork.Select(ipnetworktotest => IPNetwork.Parse(ipnetwork[index]).ToString()))
+            {
+                Assert.AreEqual(expected[index], result, "ToString");
+                index++;
+            }
         }
 
         [TestMethod]
@@ -1675,7 +957,7 @@ namespace System.Net.TestProject
         public void TestToString2()
         {
             var ipnetwork = IPNetwork.Parse("2001:0db8:1:2:3:4:5:6/64");
-            var expected = "2001:db8:1:2::/64";
+            const string expected = "2001:db8:1:2::/64";
             var result = ipnetwork.ToString();
 
             Assert.AreEqual(expected, result, "ToString");
@@ -1685,7 +967,7 @@ namespace System.Net.TestProject
         public void TestToString3()
         {
             var ipnetwork = IPNetwork.Parse("2001:0db8:1:2:3:4:5:6/100");
-            var expected = "2001:db8:1:2:3:4::/100";
+            const string expected = "2001:db8:1:2:3:4::/100";
             var result = ipnetwork.ToString();
 
             Assert.AreEqual(expected, result, "ToString");
@@ -1700,7 +982,7 @@ namespace System.Net.TestProject
         public void TestSubnet3()
         {
             var ipnetwork = IPNetwork.Parse("::");
-            byte cidr = 129;
+            const byte cidr = 129;
 
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
         }
@@ -1711,7 +993,7 @@ namespace System.Net.TestProject
         public void TestSubnet4()
         {
             var ipnetwork = IPNetwork.Parse("::");
-            byte cidr = 1;
+            const byte cidr = 1;
 
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
         }
@@ -1721,7 +1003,7 @@ namespace System.Net.TestProject
         public void TestSubnet5()
         {
             var ipnetwork = IPNetwork.Parse("1:1:1:1:1:1:1:1");
-            byte cidr = 65;
+            const byte cidr = 65;
 
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             Assert.AreEqual(2, subnets.Count, "count");
@@ -1734,7 +1016,7 @@ namespace System.Net.TestProject
         public void TestSubnet6()
         {
             var ipnetwork = IPNetwork.Parse("1:1:1:1:1:1:1:1");
-            byte cidr = 68;
+            const byte cidr = 68;
 
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             Assert.AreEqual(16, subnets.Count, "count");
@@ -1761,7 +1043,7 @@ namespace System.Net.TestProject
         public void TestSubnet7()
         {
             var ipnetwork = IPNetwork.Parse("1:1:1:1:1:1:1:1");
-            byte cidr = 72;
+            const byte cidr = 72;
 
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             Assert.AreEqual(256, subnets.Count, "count");
@@ -1774,7 +1056,7 @@ namespace System.Net.TestProject
         public void TestSubnet9()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08:1:1:1:1:1:1");
-            byte cidr = 128;
+            const byte cidr = 128;
             var count = BigInteger.Pow(2, ipnetwork.Cidr);
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             Assert.AreEqual(count, subnets.Count, "count");
@@ -1788,7 +1070,7 @@ namespace System.Net.TestProject
         public void TestSubnet10()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08::/0");
-            byte cidr = 128;
+            const byte cidr = 128;
             var count = BigInteger.Pow(2, 128 - ipnetwork.Cidr);
 
             // Here I spawm a OOM dragon ! beware of the beast !
@@ -1803,7 +1085,7 @@ namespace System.Net.TestProject
         public void TestSubnet12()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08::/64");
-            byte cidr = 70;
+            const byte cidr = 70;
             var i = -1;
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             foreach (var ipn in subnets)
@@ -1818,7 +1100,7 @@ namespace System.Net.TestProject
         public void TestSubnet13()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08::/64");
-            byte cidr = 70;
+            const byte cidr = 70;
             var subnets = IPNetwork.Subnet(ipnetwork, cidr);
             var error = subnets[1000];
         }
@@ -1831,9 +1113,9 @@ namespace System.Net.TestProject
         public void TestTrySubnet3()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08::/64");
-            byte cidr = 255;
+            const byte cidr = 255;
 
-            IPNetworkCollection subnets = null;
+            IPNetworkCollection subnets;
             var subnetted = IPNetwork.TrySubnet(ipnetwork, cidr, out subnets);
 
             Assert.AreEqual(false, subnetted, "subnetted");
@@ -1844,9 +1126,9 @@ namespace System.Net.TestProject
         public void TestTrySubnet4()
         {
             var ipnetwork = IPNetwork.Parse("2001:db08::/64");
-            byte cidr = 63;
+            const byte cidr = 63;
 
-            IPNetworkCollection subnets = null;
+            IPNetworkCollection subnets;
             var subnetted = IPNetwork.TrySubnet(ipnetwork, cidr, out subnets);
 
             Assert.AreEqual(false, subnetted, "subnetted");
@@ -1857,9 +1139,9 @@ namespace System.Net.TestProject
         public void TestTrySubnet5()
         {
             var ipnetwork = IPNetwork.Parse("2001:db8::/64");
-            byte cidr = 65;
+            const byte cidr = 65;
 
-            IPNetworkCollection subnets = null;
+            IPNetworkCollection subnets;
             var subnetted = IPNetwork.TrySubnet(ipnetwork, cidr, out subnets);
 
             Assert.AreEqual(true, subnetted, "subnetted");
@@ -1873,9 +1155,9 @@ namespace System.Net.TestProject
         public void TestTrySubnet6()
         {
             var ipnetwork = IPNetwork.Parse("2001:db8::/64");
-            byte cidr = 68;
+            const byte cidr = 68;
 
-            IPNetworkCollection subnets = null;
+            IPNetworkCollection subnets;
             var subnetted = IPNetwork.TrySubnet(ipnetwork, cidr, out subnets);
 
             Assert.AreEqual(true, subnetted, "subnetted");
@@ -1903,115 +1185,72 @@ namespace System.Net.TestProject
         #region TrySupernet
 
         [TestMethod]
-        public void TestTrySupernet1()
-        {
-            var network1 = IPNetwork.Parse("2001:db8::/65");
-            var network2 = IPNetwork.Parse("2001:db8:0:0:8000::/65");
-            var supernetExpected = IPNetwork.Parse("2001:db8::/64");
-            IPNetwork supernet;
-            var supernetted = true;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetted, result, "supernetted");
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-        }
-
-        [TestMethod]
         public void TestTrySupernet2()
         {
-            IPNetwork network1 = null;
             var network2 = IPNetwork.Parse("2001:db8::/64");
-            IPNetwork supernetExpected = null;
             IPNetwork supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
+            const bool parsed = false;
+            var result = IPNetwork.TrySupernet(null, network2, out supernet);
 
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
+            Assert.AreEqual(null, supernet, "supernet");
             Assert.AreEqual(parsed, result, "parsed");
         }
 
         [TestMethod]
-        public void TestTrySupernet3()
+        public void TestTrySupernet()
         {
-            var network1 = IPNetwork.Parse("2001:db8::/64");
-            IPNetwork network2 = null;
-            IPNetwork supernetExpected = null;
-            IPNetwork supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTrySupernet4()
-        {
-            var network1 = IPNetwork.Parse("2001:db8::/64");
-            var network2 = IPNetwork.Parse("2001:db9::/65");
-            IPNetwork supernetExpected = null;
-            IPNetwork supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTrySupernet5()
-        {
-            var network1 = IPNetwork.Parse("2001:db8::/64");
-            var network2 = IPNetwork.Parse("2001:dba::/64");
-            IPNetwork supernetExpected = null;
-            IPNetwork supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTrySupernet6()
-        {
-            var network1 = IPNetwork.Parse("2001:db8::/64");
-            var network2 = IPNetwork.Parse("2001:db8::1/65");
-            var supernetExpected = IPNetwork.Parse("2001:db8::/64");
-            IPNetwork supernet;
-            var parsed = true;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTrySupernet7()
-        {
-            var network1 = IPNetwork.Parse("2001:db8::/64");
-            var network2 = IPNetwork.Parse("2001:db8::1/65");
-            var supernetExpected = IPNetwork.Parse("2001:db8::/64");
-            IPNetwork supernet;
-            var parsed = true;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        [TestMethod]
-        public void TestTrySupernet8()
-        {
-            var network1 = IPNetwork.Parse("2001:db0::/64");
-            var network2 = IPNetwork.Parse("2001:dbf::/64");
-            IPNetwork supernetExpected = null;
-            IPNetwork supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network1, network2, out supernet);
-
-            Assert.AreEqual(supernetExpected, supernet, "supernet");
-            Assert.AreEqual(parsed, result, "parsed");
+            var network1 = new List<IPNetwork>
+            {
+                IPNetwork.Parse("2001:db8::/65"),
+                null,
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db0::/64")
+            };
+            var network2 = new List<IPNetwork>
+            {
+                IPNetwork.Parse("2001:db8:0:0:8000::/65"),
+                IPNetwork.Parse("2001:db8::/64"),
+                null,
+                IPNetwork.Parse("2001:db9::/65"),
+                IPNetwork.Parse("2001:dba::/64"),
+                IPNetwork.Parse("2001:db8::1/65"),
+                IPNetwork.Parse("2001:db8::1/65"),
+                IPNetwork.Parse("2001:dbf::/64")
+            };
+            var supernetExpected = new List<IPNetwork>
+            {
+                IPNetwork.Parse("2001:db8::/64"),
+                null,
+                null,
+                null,
+                null,
+                IPNetwork.Parse("2001:db8::/64"),
+                IPNetwork.Parse("2001:db8::/64"),
+                null
+            };
+            var parsed = new List<bool> {true, false, false, false, false, true, true, false};
+            var message = new List<string>
+            {
+                "supernetted",
+                "parsed",
+                "parsed",
+                "parsed",
+                "parsed",
+                "parsed",
+                "parsed",
+                "parsed"
+            };
+            for (var i = 0; i < network1.Count; i++)
+            {
+                IPNetwork supernet;
+                var result = IPNetwork.TrySupernet(network1[i], network2[i], out supernet);
+                Assert.AreEqual(parsed[i], result, message[i]);
+                Assert.AreEqual(supernetExpected[i], supernet, "supernet");
+            }
         }
 
         [TestMethod]
@@ -2022,7 +1261,7 @@ namespace System.Net.TestProject
             IPNetwork[] network3 = {network1, network2};
             IPNetwork[] supernetExpected = {network1, network2};
             IPNetwork[] supernet;
-            var parsed = true;
+            const bool parsed = true;
             var result = IPNetwork.TrySupernet(network3, out supernet);
 
             Assert.AreEqual(supernetExpected[0], supernet[0], "supernet");
@@ -2039,7 +1278,7 @@ namespace System.Net.TestProject
             IPNetwork[] network3 = {network1, network2};
             IPNetwork[] supernetExpected = {IPNetwork.Parse("2001:db8::/64")};
             IPNetwork[] supernet;
-            var parsed = true;
+            const bool parsed = true;
             var result = IPNetwork.TrySupernet(network3, out supernet);
 
             Assert.AreEqual(supernetExpected[0], supernet[0], "supernet");
@@ -2050,236 +1289,12 @@ namespace System.Net.TestProject
         [TestMethod]
         public void TestTrySupernet11()
         {
-            IPNetwork[] network3 = null;
-            IPNetwork[] supernetExpected = {IPNetwork.Parse("2001:db8::/64")};
             IPNetwork[] supernet;
-            var parsed = false;
-            var result = IPNetwork.TrySupernet(network3, out supernet);
+            const bool parsed = false;
+            var result = IPNetwork.TrySupernet(null, out supernet);
 
             Assert.AreEqual(null, supernet, "supernet");
             Assert.AreEqual(parsed, result, "parsed");
-        }
-
-        #endregion
-
-        #region TryGuessCidr
-
-        [TestMethod]
-        public void TestTryGuessCidrNull()
-        {
-            byte cidr;
-            var parsed = IPNetwork.TryGuessCidr(null, out cidr);
-
-            Assert.AreEqual(false, parsed, "parsed");
-            Assert.AreEqual(0, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryGuessCidr1()
-        {
-            byte cidr;
-            var parsed = IPNetwork.TryGuessCidr("::", out cidr);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(64, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TestTryGuessCidr2()
-        {
-            byte cidr;
-            var parsed = IPNetwork.TryGuessCidr("2001:0db8::", out cidr);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(64, cidr, "cidr");
-        }
-
-        #endregion
-
-        #region Count
-
-        [TestMethod]
-        public void Total32()
-        {
-            var network = IPNetwork.Parse("::/128");
-            var total = 1;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total31()
-        {
-            var network = IPNetwork.Parse("::/127");
-            var total = 2;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total30()
-        {
-            var network = IPNetwork.Parse("::/126");
-            var total = 4;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total24()
-        {
-            var network = IPNetwork.Parse("::/120");
-            var total = 256;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total16()
-        {
-            var network = IPNetwork.Parse("::/112");
-            var total = 65536;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total8()
-        {
-            var network = IPNetwork.Parse("::/104");
-            var total = 16777216;
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        [TestMethod]
-        public void Total0()
-        {
-            var network = IPNetwork.Parse("::/0");
-            var total = BigInteger.Pow(2, 128);
-            Assert.AreEqual(total, network.Total, "Total");
-        }
-
-        #endregion
-
-        #region Usable
-
-        [TestMethod]
-        public void Usable32()
-        {
-            var network = IPNetwork.Parse("::/128");
-            uint usable = 1;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable31()
-        {
-            var network = IPNetwork.Parse("::/127");
-            uint usable = 2;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable30()
-        {
-            var network = IPNetwork.Parse("::/126");
-            uint usable = 4;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable24()
-        {
-            var network = IPNetwork.Parse("::/120");
-            uint usable = 256;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable16()
-        {
-            var network = IPNetwork.Parse("::/112");
-            uint usable = 65536;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable8()
-        {
-            var network = IPNetwork.Parse("::/104");
-            uint usable = 16777216;
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        [TestMethod]
-        public void Usable0()
-        {
-            var network = IPNetwork.Parse("::/0");
-            var usable = BigInteger.Pow(2, 128);
-            Assert.AreEqual(usable, network.Usable, "Usable");
-        }
-
-        #endregion
-
-        #region TryParseCidr
-
-        [TestMethod]
-        public void TryParseCidr1()
-        {
-            var sidr = "0";
-            byte? cidr;
-            byte? result = 0;
-            var parsed = IPNetwork.TryParseCidr(sidr, AddressFamily.InterNetworkV6, out cidr);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(result, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TryParseCidr2()
-        {
-            var sidr = "sadsd";
-            byte? cidr;
-            byte? result = null;
-
-            var parsed = IPNetwork.TryParseCidr(sidr, AddressFamily.InterNetworkV6, out cidr);
-
-            Assert.AreEqual(false, parsed, "parsed");
-            Assert.AreEqual(result, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TryParseCidr33()
-        {
-            var sidr = "33";
-            byte? cidr;
-            byte result = 33;
-
-            var parsed = IPNetwork.TryParseCidr(sidr, AddressFamily.InterNetworkV6, out cidr);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(result, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TryParseCidr128()
-        {
-            var sidr = "128";
-            byte? cidr;
-            byte result = 128;
-
-            var parsed = IPNetwork.TryParseCidr(sidr, AddressFamily.InterNetworkV6, out cidr);
-
-            Assert.AreEqual(true, parsed, "parsed");
-            Assert.AreEqual(result, cidr, "cidr");
-        }
-
-        [TestMethod]
-        public void TryParseCidr129()
-        {
-            var sidr = "129";
-            byte? cidr;
-            byte? result = null;
-
-            var parsed = IPNetwork.TryParseCidr(sidr, AddressFamily.InterNetworkV6, out cidr);
-
-            Assert.AreEqual(false, parsed, "parsed");
-            Assert.AreEqual(result, cidr, "cidr");
         }
 
         #endregion

@@ -105,6 +105,21 @@ namespace System.Net.ConsoleApplication
             }
         }
 
+        public static void testme()
+        {
+
+            var ipnetwork = IPNetwork.Parse("192.168.0.0/24");
+            const byte cidr = 32;
+
+            var subnets = IPNetwork.Subnet(ipnetwork, cidr);
+            var index = 0;
+            foreach (var subnet in subnets)
+            {
+                Console.WriteLine($"IPNetwork.Subnet #{index}={subnet}");
+                index++;
+            }
+        }
+
         public static void Main(string[] args)
         {
             var ac = ParseArgs(args);
@@ -140,6 +155,7 @@ namespace System.Net.ConsoleApplication
                  * 
             */
                 default:
+                    testme();
                     Usage();
                     break;
             }
@@ -354,24 +370,25 @@ namespace System.Net.ConsoleApplication
         private static bool TryParseIPNetwork(string ip, CidrParseEnum cidrParseEnum, byte cidr, out IPNetwork ipn)
         {
             IPNetwork ipnetwork = null;
-            if (cidrParseEnum == CidrParseEnum.Default)
+            switch (cidrParseEnum)
             {
-                if (!IPNetwork.TryParse(ip, out ipnetwork))
-                {
-                    ipn = null;
-                    return false;
-                }
-            }
-            else if (cidrParseEnum == CidrParseEnum.Value)
-            {
-                if (!IPNetwork.TryParse(ip, cidr, out ipnetwork))
-                {
+                case CidrParseEnum.Default:
                     if (!IPNetwork.TryParse(ip, out ipnetwork))
                     {
                         ipn = null;
                         return false;
                     }
-                }
+                    break;
+                case CidrParseEnum.Value:
+                    if (!IPNetwork.TryParse(ip, cidr, out ipnetwork))
+                    {
+                        if (!IPNetwork.TryParse(ip, out ipnetwork))
+                        {
+                            ipn = null;
+                            return false;
+                        }
+                    }
+                    break;
             }
             ipn = ipnetwork;
             return true;
@@ -422,7 +439,7 @@ namespace System.Net.ConsoleApplication
 
             Console.WriteLine(
                 "Usage: ipnetwork [-inmcbflu] [-d cidr|-D] [-h|-s cidr|-S|-w|-W|-x|-C network|-o network] networks ...");
-            Console.WriteLine("Version: {0}", version);
+            Console.WriteLine($"Version: {version}");
             Console.WriteLine();
             Console.WriteLine("Print options");
             Console.WriteLine("\t-i : network");
