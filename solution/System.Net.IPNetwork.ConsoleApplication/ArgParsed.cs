@@ -1,5 +1,7 @@
-﻿namespace System.Net.ConsoleApplication {
-    public class ArgParsed {
+﻿namespace System.Net.IPNetwork.ConsoleApplication
+{
+    public class ArgParsed
+    {
         public int Arg;
         private event ArgParsedDelegate OnArgParsed;
         public delegate void ArgParsedDelegate(ProgramContext ac, string arg);
@@ -9,7 +11,8 @@
             OnArgParsed?.Invoke(ac, arg);
         }
 
-        public ArgParsed(int arg, ArgParsedDelegate onArgParsed) {
+        public ArgParsed(int arg, ArgParsedDelegate onArgParsed)
+        {
             Arg = arg;
             OnArgParsed += onArgParsed;
         }

@@ -1,10 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System.Linq;
+using System.Numerics;
+using System.Text;
 
-namespace System.Net {
-    using System;
-    using Numerics;
-    using Text;
-
+namespace System.Net.IPNetwork {
     /// <summary>
     /// Extension methods to convert <see cref="System.Numerics.BigInteger"/>
     /// instances to hexadecimal, octal, and binary strings.
@@ -135,15 +133,11 @@ namespace System.Net {
         /// <param name="width"></param>
         /// <returns></returns>
         public static BigInteger PositiveReverse(this BigInteger input, int width) {
-
-            var result = new List<byte>();
             var bytes = input.ToByteArray();
             var work = new byte[width];
             Array.Copy(bytes, 0, work, 0, bytes.Length - 1); // Length -1 : positive BigInteger
 
-            for (int i = 0; i < work.Length; i++) {
-                result.Add((byte)(~work[i]));
-            }
+            var result = work.Select(t => (byte) ~t).ToList();
             result.Add(0); // positive BigInteger
             return new BigInteger(result.ToArray());
 

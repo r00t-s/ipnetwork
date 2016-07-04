@@ -1,6 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace System.Net.TestProject {
+namespace System.Net.IPNetwork.TestProject {
     /// <summary>
     /// Summary description for ConsoleUnitTest
     /// </summary>

@@ -1,7 +1,7 @@
-﻿namespace System.Net.ConsoleApplication {
+﻿namespace System.Net.IPNetwork.ConsoleApplication {
     public class ProgramContext {
 
-        public bool IPNetwork;
+        public bool IpNetwork;
         public bool Network;
         public bool Netmask;
         public bool Cidr;
@@ -14,15 +14,15 @@
         public CidrParseEnum CidrParse = CidrParseEnum.Value;
         public byte CidrParsed = 32;
 
-        public IPNetwork ContainNetwork;
-        public IPNetwork OverlapNetwork;
-        public IPNetwork SubstractNetwork;
+        public IpNetwork ContainNetwork;
+        public IpNetwork OverlapNetwork;
+        public IpNetwork SubstractNetwork;
 
         public ActionEnum Action = ActionEnum.PrintNetworks;
         public byte SubnetCidr;
 
         public string[] NetworksString;
-        public IPNetwork[] Networks;
+        public IpNetwork[] Networks;
 
 
 

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace System.Net.TestProject
+namespace System.Net.IPNetwork.TestProject
 {
     [TestClass]
     public class BigIntegerBitWiseUnitTest

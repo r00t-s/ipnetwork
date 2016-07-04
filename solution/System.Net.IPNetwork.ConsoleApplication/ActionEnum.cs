@@ -1,11 +1,11 @@
-﻿namespace System.Net.ConsoleApplication {
+﻿namespace System.Net.IPNetwork.ConsoleApplication {
     public enum ActionEnum {
         Usage,
         PrintNetworks,
         Subnet,
         Supernet,
         WideSupernet,
-        ListIPAddress,
+        ListIpAddress,
         ContainNetwork,
         OverlapNetwork,
         SubstractNetwork

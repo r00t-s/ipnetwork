@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Numerics;
 
-namespace System.Net {
-    public class IPAddressCollection : IEnumerable<IPAddress>, IEnumerator<IPAddress> {
+namespace System.Net.IPNetwork {
+    public class IpAddressCollection : IEnumerable<IPAddress>, IEnumerator<IPAddress> {
 
-        private readonly IPNetwork _ipnetwork;
+        private readonly IpNetwork _ipnetwork;
         private BigInteger _enumerator;
 
-        internal IPAddressCollection(IPNetwork ipnetwork) {
+        internal IpAddressCollection(IpNetwork ipnetwork) {
             _ipnetwork = ipnetwork;
             _enumerator = -1;
         }
@@ -24,7 +24,7 @@ namespace System.Net {
                     throw new ArgumentOutOfRangeException(nameof(i));
                 }
                 var width = _ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? (byte)32 : (byte)128;
-                var ipn = IPNetwork.Subnet(_ipnetwork, width);
+                var ipn = IpNetwork.Subnet(_ipnetwork, width);
                 return ipn[i].Network;
             }
         }

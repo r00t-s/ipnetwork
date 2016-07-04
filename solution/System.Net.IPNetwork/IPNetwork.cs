@@ -5,17 +5,17 @@ using System.Net.Sockets;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
-namespace System.Net
+namespace System.Net.IPNetwork
 {
     /// <summary>
     ///     IP Network utility class.
     ///     Use IPNetwork.Parse to create instances.
     /// </summary>
-    public class IPNetwork : IComparable<IPNetwork>
+    public class IpNetwork : IComparable<IpNetwork>
     {
         #region constructor
 
-        internal IPNetwork(BigInteger ipaddress, AddressFamily family, byte cidr)
+        internal IpNetwork(BigInteger ipaddress, AddressFamily family, byte cidr)
         {
             var maxCidr = family == AddressFamily.InterNetwork ? 32 : 128;
             if (cidr > maxCidr)
@@ -38,7 +38,7 @@ namespace System.Net
         /// <param name="network"></param>
         /// <param name="network2"></param>
         /// <returns></returns>
-        public static bool Overlap(IPNetwork network, IPNetwork network2)
+        public static bool Overlap(IpNetwork network, IpNetwork network2)
         {
             if (network == null)
             {
@@ -93,7 +93,7 @@ namespace System.Net
         /// </summary>
         /// <param name="ipnetwork"></param>
         /// <returns></returns>
-        public static string Print(IPNetwork ipnetwork)
+        public static string Print(IpNetwork ipnetwork)
         {
             if (ipnetwork == null)
             {
@@ -117,9 +117,9 @@ namespace System.Net
 
         #region ListIPAddress
 
-        public static IPAddressCollection ListIPAddress(IPNetwork ipnetwork)
+        public static IpAddressCollection ListIpAddress(IpNetwork ipnetwork)
         {
-            return new IPAddressCollection(ipnetwork);
+            return new IpAddressCollection(ipnetwork);
         }
 
         #endregion
@@ -150,7 +150,7 @@ namespace System.Net
         /// <summary>
         ///     Network address
         /// </summary>
-        public IPAddress Network => ToIPAddress(_network, AddressFamily);
+        public IPAddress Network => ToIpAddress(_network, AddressFamily);
 
         /// <summary>
         ///     Address Family
@@ -162,7 +162,7 @@ namespace System.Net
         /// <summary>
         ///     Netmask
         /// </summary>
-        public IPAddress Netmask => ToIPAddress(_netmask, AddressFamily);
+        public IPAddress Netmask => ToIpAddress(_netmask, AddressFamily);
 
         private BigInteger _broadcast
         {
@@ -177,7 +177,7 @@ namespace System.Net
         /// <summary>
         ///     Broadcast address
         /// </summary>
-        public IPAddress Broadcast => AddressFamily == AddressFamily.InterNetworkV6 ? null : ToIPAddress(_broadcast, AddressFamily);
+        public IPAddress Broadcast => AddressFamily == AddressFamily.InterNetworkV6 ? null : ToIpAddress(_broadcast, AddressFamily);
 
         /// <summary>
         ///     First usable IP adress in Network
@@ -189,7 +189,7 @@ namespace System.Net
                 var fisrt = AddressFamily == AddressFamily.InterNetworkV6
                     ? _network
                     : Usable <= 0 ? _network : _network + 1;
-                return ToIPAddress(fisrt, AddressFamily);
+                return ToIpAddress(fisrt, AddressFamily);
             }
         }
 
@@ -203,7 +203,7 @@ namespace System.Net
                 var last = AddressFamily == AddressFamily.InterNetworkV6
                     ? _broadcast
                     : Usable <= 0 ? _network : _broadcast - 1;
-                return ToIPAddress(last, AddressFamily);
+                return ToIpAddress(last, AddressFamily);
             }
         }
 
@@ -260,9 +260,9 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="netmask"></param>
         /// <returns></returns>
-        public static IPNetwork Parse(string ipaddress, string netmask)
+        public static IpNetwork Parse(string ipaddress, string netmask)
         {
-            IPNetwork ipnetwork;
+            IpNetwork ipnetwork;
             InternalParse(false, ipaddress, netmask, out ipnetwork);
             return ipnetwork;
         }
@@ -279,9 +279,9 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="cidr"></param>
         /// <returns></returns>
-        public static IPNetwork Parse(string ipaddress, byte cidr)
+        public static IpNetwork Parse(string ipaddress, byte cidr)
         {
-            IPNetwork ipnetwork;
+            IpNetwork ipnetwork;
             InternalParse(false, ipaddress, cidr, out ipnetwork);
             return ipnetwork;
         }
@@ -298,9 +298,9 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="netmask"></param>
         /// <returns></returns>
-        public static IPNetwork Parse(IPAddress ipaddress, IPAddress netmask)
+        public static IpNetwork Parse(IPAddress ipaddress, IPAddress netmask)
         {
-            IPNetwork ipnetwork;
+            IpNetwork ipnetwork;
             InternalParse(false, ipaddress, netmask, out ipnetwork);
             return ipnetwork;
         }
@@ -317,9 +317,9 @@ namespace System.Net
         /// </summary>
         /// <param name="network"></param>
         /// <returns></returns>
-        public static IPNetwork Parse(string network)
+        public static IpNetwork Parse(string network)
         {
-            IPNetwork ipnetwork;
+            IpNetwork ipnetwork;
             InternalParse(false, network, out ipnetwork);
             return ipnetwork;
         }
@@ -340,9 +340,9 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="netmask"></param>
         /// <returns></returns>
-        public static bool TryParse(string ipaddress, string netmask, out IPNetwork ipnetwork)
+        public static bool TryParse(string ipaddress, string netmask, out IpNetwork ipnetwork)
         {
-            IPNetwork ipnetwork2;
+            IpNetwork ipnetwork2;
             InternalParse(true, ipaddress, netmask, out ipnetwork2);
             var parsed = ipnetwork2 != null;
             ipnetwork = ipnetwork2;
@@ -362,9 +362,9 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="cidr"></param>
         /// <returns></returns>
-        public static bool TryParse(string ipaddress, byte cidr, out IPNetwork ipnetwork)
+        public static bool TryParse(string ipaddress, byte cidr, out IpNetwork ipnetwork)
         {
-            IPNetwork ipnetwork2;
+            IpNetwork ipnetwork2;
             InternalParse(true, ipaddress, cidr, out ipnetwork2);
             var parsed = ipnetwork2 != null;
             ipnetwork = ipnetwork2;
@@ -384,9 +384,9 @@ namespace System.Net
         /// <param name="network"></param>
         /// <param name="ipnetwork"></param>
         /// <returns></returns>
-        public static bool TryParse(string network, out IPNetwork ipnetwork)
+        public static bool TryParse(string network, out IpNetwork ipnetwork)
         {
-            IPNetwork ipnetwork2;
+            IpNetwork ipnetwork2;
             InternalParse(true, network, out ipnetwork2);
             var parsed = ipnetwork2 != null;
             ipnetwork = ipnetwork2;
@@ -407,9 +407,9 @@ namespace System.Net
         /// <param name="netmask"></param>
         /// <param name="ipnetwork"></param>
         /// <returns></returns>
-        public static bool TryParse(IPAddress ipaddress, IPAddress netmask, out IPNetwork ipnetwork)
+        public static bool TryParse(IPAddress ipaddress, IPAddress netmask, out IpNetwork ipnetwork)
         {
-            IPNetwork ipnetwork2;
+            IpNetwork ipnetwork2;
             InternalParse(true, ipaddress, netmask, out ipnetwork2);
             var parsed = ipnetwork2 != null;
             ipnetwork = ipnetwork2;
@@ -432,7 +432,7 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="netmask"></param>
         /// <returns></returns>
-        private static void InternalParse(bool tryParse, string ipaddress, string netmask, out IPNetwork ipnetwork)
+        private static void InternalParse(bool tryParse, string ipaddress, string netmask, out IpNetwork ipnetwork)
         {
             if (string.IsNullOrEmpty(ipaddress))
             {
@@ -481,7 +481,7 @@ namespace System.Net
             InternalParse(tryParse, ip, mask, out ipnetwork);
         }
 
-        private static void InternalParse(bool tryParse, string network, out IPNetwork ipnetwork)
+        private static void InternalParse(bool tryParse, string network, out IpNetwork ipnetwork)
         {
             if (string.IsNullOrEmpty(network))
             {
@@ -536,7 +536,7 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="netmask"></param>
         /// <returns></returns>
-        private static void InternalParse(bool tryParse, IPAddress ipaddress, IPAddress netmask, out IPNetwork ipnetwork)
+        private static void InternalParse(bool tryParse, IPAddress ipaddress, IPAddress netmask, out IpNetwork ipnetwork)
         {
             if (ipaddress == null)
             {
@@ -572,7 +572,7 @@ namespace System.Net
             }
             var cidr = (byte) cidr2;
 
-            var ipnet = new IPNetwork(uintIpAddress, ipaddress.AddressFamily, cidr);
+            var ipnet = new IpNetwork(uintIpAddress, ipaddress.AddressFamily, cidr);
             ipnetwork = ipnet;
         }
 
@@ -589,7 +589,7 @@ namespace System.Net
         /// <param name="ipaddress"></param>
         /// <param name="cidr"></param>
         /// <returns></returns>
-        private static void InternalParse(bool tryParse, string ipaddress, byte cidr, out IPNetwork ipnetwork)
+        private static void InternalParse(bool tryParse, string ipaddress, byte cidr, out IpNetwork ipnetwork)
         {
             if (string.IsNullOrEmpty(ipaddress))
             {
@@ -958,7 +958,7 @@ namespace System.Net
             }
 
             var mask = ToUint(cidr, family);
-            var netmask2 = ToIPAddress(mask, family);
+            var netmask2 = ToIpAddress(mask, family);
             netmask = netmask2;
         }
 
@@ -1064,7 +1064,7 @@ namespace System.Net
         /// </summary>
         /// <param name="ipaddress"></param>
         /// <returns></returns>
-        public static IPAddress ToIPAddress(BigInteger ipaddress, AddressFamily family)
+        public static IPAddress ToIpAddress(BigInteger ipaddress, AddressFamily family)
         {
             var width = family == AddressFamily.InterNetwork ? 4 : 16;
             var bytes = ipaddress.ToByteArray();
@@ -1110,7 +1110,7 @@ namespace System.Net
         /// <param name="network"></param>
         /// <param name="ipaddress"></param>
         /// <returns></returns>
-        public static bool Contains(IPNetwork network, IPAddress ipaddress)
+        public static bool Contains(IpNetwork network, IPAddress ipaddress)
         {
             if (network == null)
             {
@@ -1138,7 +1138,7 @@ namespace System.Net
         /// <param name="network"></param>
         /// <param name="network2"></param>
         /// <returns></returns>
-        public static bool Contains(IPNetwork network, IPNetwork network2)
+        public static bool Contains(IpNetwork network, IpNetwork network2)
         {
             if (network == null)
             {
@@ -1166,23 +1166,23 @@ namespace System.Net
 
         #region IANA block
 
-        private static IPNetwork _iana_ablock_reserved;
-        private static IPNetwork _iana_bblock_reserved;
-        private static IPNetwork _iana_cblock_reserved;
+        private static IpNetwork _ianaAblockReserved;
+        private static IpNetwork _ianaBblockReserved;
+        private static IpNetwork _ianaCblockReserved;
 
         /// <summary>
         ///     10.0.0.0/8
         /// </summary>
         /// <returns></returns>
-        public static IPNetwork IANA_ABLK_RESERVED1
+        public static IpNetwork IanaAblkReserved1
         {
             get
             {
-                if (_iana_ablock_reserved == null)
+                if (_ianaAblockReserved == null)
                 {
-                    _iana_ablock_reserved = Parse("10.0.0.0/8");
+                    _ianaAblockReserved = Parse("10.0.0.0/8");
                 }
-                return _iana_ablock_reserved;
+                return _ianaAblockReserved;
             }
         }
 
@@ -1190,15 +1190,15 @@ namespace System.Net
         ///     172.12.0.0/12
         /// </summary>
         /// <returns></returns>
-        public static IPNetwork IANA_BBLK_RESERVED1
+        public static IpNetwork IanaBblkReserved1
         {
             get
             {
-                if (_iana_bblock_reserved == null)
+                if (_ianaBblockReserved == null)
                 {
-                    _iana_bblock_reserved = Parse("172.16.0.0/12");
+                    _ianaBblockReserved = Parse("172.16.0.0/12");
                 }
-                return _iana_bblock_reserved;
+                return _ianaBblockReserved;
             }
         }
 
@@ -1206,15 +1206,15 @@ namespace System.Net
         ///     192.168.0.0/16
         /// </summary>
         /// <returns></returns>
-        public static IPNetwork IANA_CBLK_RESERVED1
+        public static IpNetwork IanaCblkReserved1
         {
             get
             {
-                if (_iana_cblock_reserved == null)
+                if (_ianaCblockReserved == null)
                 {
-                    _iana_cblock_reserved = Parse("192.168.0.0/16");
+                    _ianaCblockReserved = Parse("192.168.0.0/16");
                 }
-                return _iana_cblock_reserved;
+                return _ianaCblockReserved;
             }
         }
 
@@ -1231,9 +1231,9 @@ namespace System.Net
                 throw new ArgumentNullException(nameof(ipaddress));
             }
 
-            return Contains(IANA_ABLK_RESERVED1, ipaddress)
-                   || Contains(IANA_BBLK_RESERVED1, ipaddress)
-                   || Contains(IANA_CBLK_RESERVED1, ipaddress);
+            return Contains(IanaAblkReserved1, ipaddress)
+                   || Contains(IanaBblkReserved1, ipaddress)
+                   || Contains(IanaCblkReserved1, ipaddress);
         }
 
         /// <summary>
@@ -1242,16 +1242,16 @@ namespace System.Net
         /// </summary>
         /// <param name="ipnetwork"></param>
         /// <returns></returns>
-        public static bool IsIANAReserved(IPNetwork ipnetwork)
+        public static bool IsIANAReserved(IpNetwork ipnetwork)
         {
             if (ipnetwork == null)
             {
                 throw new ArgumentNullException(nameof(ipnetwork));
             }
 
-            return Contains(IANA_ABLK_RESERVED1, ipnetwork)
-                   || Contains(IANA_BBLK_RESERVED1, ipnetwork)
-                   || Contains(IANA_CBLK_RESERVED1, ipnetwork);
+            return Contains(IanaAblkReserved1, ipnetwork)
+                   || Contains(IanaBblkReserved1, ipnetwork)
+                   || Contains(IanaCblkReserved1, ipnetwork);
         }
 
         #endregion
@@ -1266,9 +1266,9 @@ namespace System.Net
         /// <param name="ipnetwork"></param>
         /// <param name="cidr"></param>
         /// <returns></returns>
-        public static IPNetworkCollection Subnet(IPNetwork network, byte cidr)
+        public static IpNetworkCollection Subnet(IpNetwork network, byte cidr)
         {
-            IPNetworkCollection ipnetworkCollection;
+            IpNetworkCollection ipnetworkCollection;
             InternalSubnet(false, network, cidr, out ipnetworkCollection);
             return ipnetworkCollection;
         }
@@ -1281,9 +1281,9 @@ namespace System.Net
         /// <param name="ipnetwork"></param>
         /// <param name="cidr"></param>
         /// <returns></returns>
-        public static bool TrySubnet(IPNetwork network, byte cidr, out IPNetworkCollection ipnetworkCollection)
+        public static bool TrySubnet(IpNetwork network, byte cidr, out IpNetworkCollection ipnetworkCollection)
         {
-            IPNetworkCollection inc = null;
+            IpNetworkCollection inc = null;
             InternalSubnet(true, network, cidr, out inc);
             if (inc == null)
             {
@@ -1295,8 +1295,8 @@ namespace System.Net
             return true;
         }
 
-        private static void InternalSubnet(bool trySubnet, IPNetwork network, byte cidr,
-            out IPNetworkCollection ipnetworkCollection)
+        private static void InternalSubnet(bool trySubnet, IpNetwork network, byte cidr,
+            out IpNetworkCollection ipnetworkCollection)
         {
             if (network == null)
             {
@@ -1329,7 +1329,7 @@ namespace System.Net
                 return;
             }
 
-            ipnetworkCollection = new IPNetworkCollection(network, cidr);
+            ipnetworkCollection = new IpNetworkCollection(network, cidr);
         }
 
         #endregion
@@ -1345,9 +1345,9 @@ namespace System.Net
         /// <param name="network1"></param>
         /// <param name="network2"></param>
         /// <returns></returns>
-        public static IPNetwork Supernet(IPNetwork network1, IPNetwork network2)
+        public static IpNetwork Supernet(IpNetwork network1, IpNetwork network2)
         {
-            IPNetwork supernet;
+            IpNetwork supernet;
             InternalSupernet(false, network1, network2, out supernet);
             return supernet;
         }
@@ -1361,17 +1361,17 @@ namespace System.Net
         /// <param name="network1"></param>
         /// <param name="network2"></param>
         /// <returns></returns>
-        public static bool TrySupernet(IPNetwork network1, IPNetwork network2, out IPNetwork supernet)
+        public static bool TrySupernet(IpNetwork network1, IpNetwork network2, out IpNetwork supernet)
         {
-            IPNetwork outSupernet;
+            IpNetwork outSupernet;
             InternalSupernet(true, network1, network2, out outSupernet);
             var parsed = outSupernet != null;
             supernet = outSupernet;
             return parsed;
         }
 
-        private static void InternalSupernet(bool trySupernet, IPNetwork network1, IPNetwork network2,
-            out IPNetwork supernet)
+        private static void InternalSupernet(bool trySupernet, IpNetwork network1, IpNetwork network2,
+            out IpNetwork supernet)
         {
             if (network1 == null)
             {
@@ -1396,13 +1396,13 @@ namespace System.Net
 
             if (Contains(network1, network2))
             {
-                supernet = new IPNetwork(network1._network, network1.AddressFamily, network1.Cidr);
+                supernet = new IpNetwork(network1._network, network1.AddressFamily, network1.Cidr);
                 return;
             }
 
             if (Contains(network2, network1))
             {
-                supernet = new IPNetwork(network2._network, network2.AddressFamily, network2.Cidr);
+                supernet = new IpNetwork(network2._network, network2.AddressFamily, network2.Cidr);
                 return;
             }
 
@@ -1440,7 +1440,7 @@ namespace System.Net
             var uintSupernet = first._network;
             var cidrSupernet = (byte) (first.Cidr - 1);
 
-            var networkSupernet = new IPNetwork(uintSupernet, first.AddressFamily, cidrSupernet);
+            var networkSupernet = new IpNetwork(uintSupernet, first.AddressFamily, cidrSupernet);
             if (networkSupernet._network != first._network)
             {
                 if (trySupernet == false)
@@ -1465,9 +1465,9 @@ namespace System.Net
         /// <param name="ipnetworks"></param>
         /// <param name="supernet"></param>
         /// <returns></returns>
-        public static IPNetwork[] Supernet(IPNetwork[] ipnetworks)
+        public static IpNetwork[] Supernet(IpNetwork[] ipnetworks)
         {
-            IPNetwork[] supernet;
+            IpNetwork[] supernet;
             InternalSupernet(false, ipnetworks, out supernet);
             return supernet;
         }
@@ -1480,13 +1480,13 @@ namespace System.Net
         /// <param name="ipnetworks"></param>
         /// <param name="supernet"></param>
         /// <returns></returns>
-        public static bool TrySupernet(IPNetwork[] ipnetworks, out IPNetwork[] supernet)
+        public static bool TrySupernet(IpNetwork[] ipnetworks, out IpNetwork[] supernet)
         {
             var supernetted = InternalSupernet(true, ipnetworks, out supernet);
             return supernetted;
         }
 
-        public static bool InternalSupernet(bool trySupernet, IPNetwork[] ipnetworks, out IPNetwork[] supernet)
+        public static bool InternalSupernet(bool trySupernet, IpNetwork[] ipnetworks, out IpNetwork[] supernet)
 
         {
             if (ipnetworks == null)
@@ -1501,11 +1501,11 @@ namespace System.Net
 
             if (ipnetworks.Length <= 0)
             {
-                supernet = new IPNetwork[0];
+                supernet = new IpNetwork[0];
                 return true;
             }
 
-            var supernetted = new List<IPNetwork>();
+            var supernetted = new List<IpNetwork>();
             var ipns = Array2List(ipnetworks);
             var current = List2Stack(ipns);
             var previousCount = 0;
@@ -1519,7 +1519,7 @@ namespace System.Net
                     var ipn1 = current.Pop();
                     var ipn2 = current.Peek();
 
-                    IPNetwork outNetwork;
+                    IpNetwork outNetwork;
                     var success = TrySupernet(ipn1, ipn2, out outNetwork);
                     if (success)
                     {
@@ -1544,19 +1544,19 @@ namespace System.Net
             return true;
         }
 
-        private static Stack<IPNetwork> List2Stack(List<IPNetwork> list)
+        private static Stack<IpNetwork> List2Stack(List<IpNetwork> list)
         {
-            var stack = new Stack<IPNetwork>();
-            list.ForEach(delegate(IPNetwork ipn) { stack.Push(ipn); });
+            var stack = new Stack<IpNetwork>();
+            list.ForEach(delegate(IpNetwork ipn) { stack.Push(ipn); });
             return stack;
         }
 
-        private static List<IPNetwork> Array2List(IPNetwork[] array)
+        private static List<IpNetwork> Array2List(IpNetwork[] array)
         {
-            var ipns = new List<IPNetwork>();
+            var ipns = new List<IpNetwork>();
             ipns.AddRange(array);
             RemoveNull(ipns);
-            ipns.Sort(delegate(IPNetwork ipn1, IPNetwork ipn2)
+            ipns.Sort(delegate(IpNetwork ipn1, IpNetwork ipn2)
             {
                 var networkCompare = ipn1._network.CompareTo(ipn2._network);
                 if (networkCompare != 0) return networkCompare;
@@ -1568,7 +1568,7 @@ namespace System.Net
             return ipns;
         }
 
-        private static void RemoveNull(List<IPNetwork> ipns)
+        private static void RemoveNull(List<IpNetwork> ipns)
         {
             ipns.RemoveAll(ipn => ipn == null);
         }
@@ -1577,7 +1577,7 @@ namespace System.Net
 
         #region WideSubnet
 
-        public static IPNetwork WideSubnet(string start, string end)
+        public static IpNetwork WideSubnet(string start, string end)
         {
             if (string.IsNullOrEmpty(start))
             {
@@ -1589,37 +1589,37 @@ namespace System.Net
                 throw new ArgumentNullException(nameof(end));
             }
 
-            IPAddress startIP;
-            if (!IPAddress.TryParse(start, out startIP))
+            IPAddress startIp;
+            if (!IPAddress.TryParse(start, out startIp))
             {
                 throw new ArgumentException("start");
             }
 
-            IPAddress endIP;
-            if (!IPAddress.TryParse(end, out endIP))
+            IPAddress endIp;
+            if (!IPAddress.TryParse(end, out endIp))
             {
                 throw new ArgumentException("end");
             }
 
-            if (startIP.AddressFamily != endIP.AddressFamily)
+            if (startIp.AddressFamily != endIp.AddressFamily)
             {
                 throw new NotSupportedException("MixedAddressFamily");
             }
 
-            var ipnetwork = new IPNetwork(0, startIP.AddressFamily, 0);
+            var ipnetwork = new IpNetwork(0, startIp.AddressFamily, 0);
             for (byte cidr = 32; cidr >= 0; cidr--)
             {
                 var wideSubnet = Parse(start, cidr);
-                if (!Contains(wideSubnet, endIP)) continue;
+                if (!Contains(wideSubnet, endIp)) continue;
                 ipnetwork = wideSubnet;
                 break;
             }
             return ipnetwork;
         }
 
-        public static bool TryWideSubnet(IPNetwork[] ipnetworks, out IPNetwork ipnetwork)
+        public static bool TryWideSubnet(IpNetwork[] ipnetworks, out IpNetwork ipnetwork)
         {
-            IPNetwork ipn;
+            IpNetwork ipn;
             InternalWideSubnet(true, ipnetworks, out ipn);
             if (ipn == null)
             {
@@ -1630,14 +1630,14 @@ namespace System.Net
             return true;
         }
 
-        public static IPNetwork WideSubnet(IPNetwork[] ipnetworks)
+        public static IpNetwork WideSubnet(IpNetwork[] ipnetworks)
         {
-            IPNetwork ipn = null;
+            IpNetwork ipn = null;
             InternalWideSubnet(false, ipnetworks, out ipn);
             return ipn;
         }
 
-        private static void InternalWideSubnet(bool tryWide, IPNetwork[] ipnetworks, out IPNetwork ipnetwork)
+        private static void InternalWideSubnet(bool tryWide, IpNetwork[] ipnetworks, out IpNetwork ipnetwork)
         {
             if (ipnetworks == null)
             {
@@ -1682,10 +1682,10 @@ namespace System.Net
                 throw new ArgumentException("MixedAddressFamily");
             }
 
-            var ipn = new IPNetwork(0, family, 0);
+            var ipn = new IpNetwork(0, family, 0);
             for (var cidr = nnin0.Cidr; cidr >= 0; cidr--)
             {
-                var wideSubnet = new IPNetwork(uintNnin0, family, cidr);
+                var wideSubnet = new IpNetwork(uintNnin0, family, cidr);
                 if (!Contains(wideSubnet, ipaddressX)) continue;
                 ipn = wideSubnet;
                 break;
@@ -1723,19 +1723,19 @@ namespace System.Net
                 cidr = 64;
                 return true;
             }
-            var uintIPAddress = ToBigInteger(ipaddress);
-            uintIPAddress = uintIPAddress >> 29;
-            if (uintIPAddress <= 3)
+            var uintIpAddress = ToBigInteger(ipaddress);
+            uintIpAddress = uintIpAddress >> 29;
+            if (uintIpAddress <= 3)
             {
                 cidr = 8;
                 return true;
             }
-            if (uintIPAddress <= 5)
+            if (uintIpAddress <= 5)
             {
                 cidr = 16;
                 return true;
             }
-            if (uintIPAddress <= 6)
+            if (uintIpAddress <= 6)
             {
                 cidr = 24;
                 return true;
@@ -1817,7 +1817,7 @@ namespace System.Net
 
         #region IComparable<IPNetwork> Members
 
-        public static int Compare(IPNetwork left, IPNetwork right)
+        public static int Compare(IpNetwork left, IpNetwork right)
         {
             //  two null IPNetworks are equal
             if (ReferenceEquals(left, null) && ReferenceEquals(right, null)) return 0;
@@ -1838,7 +1838,7 @@ namespace System.Net
             return result;
         }
 
-        public int CompareTo(IPNetwork other)
+        public int CompareTo(IpNetwork other)
         {
             return Compare(this, other);
         }
@@ -1849,7 +1849,7 @@ namespace System.Net
             if (obj == null) return 1;
 
             //  convert to a proper Cidr object
-            var other = obj as IPNetwork;
+            var other = obj as IpNetwork;
 
             //  type problem if null
             if (other == null)
@@ -1867,41 +1867,41 @@ namespace System.Net
 
         #region IEquatable<IPNetwork> Members
 
-        public static bool Equals(IPNetwork left, IPNetwork right)
+        public static bool Equals(IpNetwork left, IpNetwork right)
         {
             return Compare(left, right) == 0;
         }
 
-        public bool Equals(IPNetwork other)
+        public bool Equals(IpNetwork other)
         {
             return Equals(this, other);
         }
 
         public override bool Equals(object obj)
         {
-            return Equals(this, obj as IPNetwork);
+            return Equals(this, obj as IpNetwork);
         }
 
         #endregion
 
         #region Operators
 
-        public static bool operator ==(IPNetwork left, IPNetwork right)
+        public static bool operator ==(IpNetwork left, IpNetwork right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(IPNetwork left, IPNetwork right)
+        public static bool operator !=(IpNetwork left, IpNetwork right)
         {
             return !Equals(left, right);
         }
 
-        public static bool operator <(IPNetwork left, IPNetwork right)
+        public static bool operator <(IpNetwork left, IpNetwork right)
         {
             return Compare(left, right) < 0;
         }
 
-        public static bool operator >(IPNetwork left, IPNetwork right)
+        public static bool operator >(IpNetwork left, IpNetwork right)
         {
             return Compare(left, right) > 0;
         }

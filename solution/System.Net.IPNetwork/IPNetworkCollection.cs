@@ -1,23 +1,23 @@
-﻿using System.Collections.Generic;
-using System.Collections;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Numerics;
 
-namespace System.Net {
-    public class IPNetworkCollection : IEnumerable<IPNetwork>, IEnumerator<IPNetwork> {
+namespace System.Net.IPNetwork {
+    public class IpNetworkCollection : IEnumerable<IpNetwork>, IEnumerator<IpNetwork> {
 
         private BigInteger _enumerator;
         private readonly byte _cidrSubnet;
-        private readonly IPNetwork _ipnetwork;
+        private readonly IpNetwork _ipnetwork;
 
-        private byte _cidr => _ipnetwork.Cidr;
+        private byte Cidr => _ipnetwork.Cidr;
 
-        private BigInteger _broadcast => IPNetwork.ToBigInteger(_ipnetwork.Broadcast);
+        private BigInteger Broadcast => IpNetwork.ToBigInteger(_ipnetwork.Broadcast);
 
-        private BigInteger _lastUsable => IPNetwork.ToBigInteger(_ipnetwork.LastUsable);
+        private BigInteger LastUsable => IpNetwork.ToBigInteger(_ipnetwork.LastUsable);
 
-        private BigInteger _network => IPNetwork.ToBigInteger(_ipnetwork.Network);
+        private BigInteger Network => IpNetwork.ToBigInteger(_ipnetwork.Network);
 
-        internal IPNetworkCollection(IPNetwork ipnetwork, byte cidrSubnet) {
+        internal IpNetworkCollection(IpNetwork ipnetwork, byte cidrSubnet) {
 
             var maxCidr = ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetwork ? 32 : 128;
             if (cidrSubnet > maxCidr) {
@@ -39,24 +39,24 @@ namespace System.Net {
         {
             get
             {
-                var count = BigInteger.Pow(2, _cidrSubnet - _cidr);
+                var count = BigInteger.Pow(2, _cidrSubnet - Cidr);
                 return count; 
             }
         }
 
-        public IPNetwork this[BigInteger i] {
+        public IpNetwork this[BigInteger i] {
             get
             {
                 if (i >= Count)
                 {
-                    throw new ArgumentOutOfRangeException("i");
+                    throw new ArgumentOutOfRangeException(nameof(i));
                 }
 
                 var last = _ipnetwork.AddressFamily == Sockets.AddressFamily.InterNetworkV6
-                    ? _lastUsable : _broadcast;
-                var increment = (last - _network) / Count;
-                var uintNetwork = _network + ((increment + 1) * i);
-                var ipn = new IPNetwork(uintNetwork, _ipnetwork.AddressFamily, _cidrSubnet);
+                    ? LastUsable : Broadcast;
+                var increment = (last - Network) / Count;
+                var uintNetwork = Network + ((increment + 1) * i);
+                var ipn = new IpNetwork(uintNetwork, _ipnetwork.AddressFamily, _cidrSubnet);
                 return ipn;
             }
         }
@@ -65,7 +65,7 @@ namespace System.Net {
 
         #region IEnumerable Members
 
-        IEnumerator<IPNetwork> IEnumerable<IPNetwork>.GetEnumerator()
+        IEnumerator<IpNetwork> IEnumerable<IpNetwork>.GetEnumerator()
         {
             return this;
         }
@@ -77,7 +77,7 @@ namespace System.Net {
 
         #region IEnumerator<IPNetwork> Members
 
-        public IPNetwork Current => this[_enumerator];
+        public IpNetwork Current => this[_enumerator];
 
         #endregion
 
